@@ -25,8 +25,18 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
         <section className="workspace-panel">
           <div className="panel-header"><div><span className="panel-kicker">01 / 課程資訊</span><h2>選擇日期與科目</h2></div></div>
           <form method="get" className="course-toolbar">
-            <div><label htmlFor="date">日期</label><input id="date" type="date" name="date" className="form-control" defaultValue={date} /></div>
-            <div><label htmlFor="subject">科目</label><select id="subject" name="subject" className="form-select" defaultValue={subject}>{subjects.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></div>
+            <div className="date-field"><label htmlFor="date">日期</label><input id="date" type="date" name="date" className="form-control" defaultValue={date} /></div>
+            <fieldset className="subject-field">
+              <legend>科目</legend>
+              <div className="subject-options">
+                {subjects.map((item) => (
+                  <div key={item.id}>
+                    <input id={`subject-${item.id}`} type="radio" name="subject" value={item.name} defaultChecked={item.name === subject} />
+                    <label htmlFor={`subject-${item.id}`}><span>{item.name}</span><i className="bi bi-check-circle-fill" /></label>
+                  </div>
+                ))}
+              </div>
+            </fieldset>
             <button className="btn btn-primary" type="submit"><i className="bi bi-arrow-repeat me-2" />套用</button>
           </form>
 

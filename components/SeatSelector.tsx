@@ -43,12 +43,13 @@ export default function SeatSelector({
     );
   }
 
-  return (
-    <form action={action} className="seat-form">
-      <input type="hidden" name="date" value={date} />
-      <input type="hidden" name="subject" value={subject} />
-      {selected.map((seat) => <input key={seat} type="hidden" name="seats" value={seat} />)}
+  async function submitSelection(formData: FormData) {
+    await action(formData);
+    setSelected([]);
+  }
 
+  return (
+    <div className="seat-form">
       <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
         <div>
           <div className="fw-bold">點選未交作業的座號</div>
@@ -71,8 +72,14 @@ export default function SeatSelector({
                 <strong>{seat}</strong>
                 <span>{isOpen ? "作業缺交" : "已補交"}</span>
                 <div className="seat-record-actions">
-                  <button type="submit" name="id" value={record.id} formAction={isOpen ? markLateAction : reopenAction} title={isOpen ? "標記已補交" : "改回作業缺交"}><i className={`bi ${isOpen ? "bi-check-lg" : "bi-arrow-counterclockwise"}`} /></button>
-                  <button type="submit" name="id" value={record.id} formAction={removeAction} title="刪除紀錄"><i className="bi bi-trash" /></button>
+                  <form action={isOpen ? markLateAction : reopenAction}>
+                    <input type="hidden" name="id" value={record.id} />
+                    <button type="submit" title={isOpen ? "標記已補交" : "改回作業缺交"}><i className={`bi ${isOpen ? "bi-check-lg" : "bi-arrow-counterclockwise"}`} /></button>
+                  </form>
+                  <form action={removeAction}>
+                    <input type="hidden" name="id" value={record.id} />
+                    <button type="submit" title="刪除紀錄"><i className="bi bi-trash" /></button>
+                  </form>
                 </div>
               </div>
             );
@@ -91,7 +98,10 @@ export default function SeatSelector({
         })}
       </div>
 
-      <div className="d-flex gap-2 flex-wrap action-bar">
+      <form action={submitSelection} className="d-flex gap-2 flex-wrap action-bar">
+        <input type="hidden" name="date" value={date} />
+        <input type="hidden" name="subject" value={subject} />
+        {selected.map((seat) => <input key={seat} type="hidden" name="seats" value={seat} />)}
         <SubmitButton count={selected.length} />
         <button className="btn btn-outline-secondary btn-lg" type="button" disabled={!selected.length} onClick={() => setSelected([])}>
           清除
@@ -101,7 +111,7 @@ export default function SeatSelector({
             選取全部未登記座號
           </button>
         )}
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }
