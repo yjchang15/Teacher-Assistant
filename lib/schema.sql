@@ -1,6 +1,8 @@
 -- Teacher-Assistant schema (PostgreSQL / Supabase)
 -- Paste this into the Supabase SQL editor, or it is auto-applied to the local
--- PGlite database during development. Single-user app: RLS is intentionally off.
+-- PGlite database during development. Single-user (single-class) app: RLS off.
+-- NOTE: runInit splits this file on the statement separator, so never write that
+-- separator character inside a comment (it would cut the comment mid-line).
 
 -- App-wide key/value settings (also stores the schema-version marker).
 CREATE TABLE IF NOT EXISTS app_settings (
@@ -8,11 +10,26 @@ CREATE TABLE IF NOT EXISTS app_settings (
     value TEXT DEFAULT ''
 );
 
--- Example domain table — a starting point you can replace with your own.
-CREATE TABLE IF NOT EXISTS notes (
+-- 科別清單（欄位＝矩陣的欄，可日後增減）
+CREATE TABLE IF NOT EXISTS subjects (
     id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    title      TEXT NOT NULL,
-    body       TEXT DEFAULT '',
-    created_at TEXT DEFAULT '',
+    name       TEXT NOT NULL UNIQUE,
     sort_order INTEGER DEFAULT 0
 );
+
+-- 作業未交紀錄。status: 'open' 未交 / 'late' 已補交（已補交保留紀錄但不計入未交數）。
+CREATE TABLE IF NOT EXISTS records (
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    date        TEXT NOT NULL,               -- YYYY-MM-DD
+    subject     TEXT NOT NULL,               -- 科別名稱
+    seat        INTEGER NOT NULL,            -- 座號 1..32
+    status      TEXT NOT NULL DEFAULT 'open',
+    created_at  TEXT DEFAULT '',
+    resolved_at TEXT DEFAULT ''
+);
+
+-- 同一「日期＋科別＋座號」不重複登記。
+CREATE UNIQUE INDEX IF NOT EXISTS records_day_subject_seat ON records (date, subject, seat);
+
+-- 常用查詢：依日期區間 + 狀態彙整。
+CREATE INDEX IF NOT EXISTS records_date_status ON records (date, status);

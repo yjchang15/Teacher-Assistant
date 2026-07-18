@@ -170,7 +170,10 @@ export async function tx(statements: [string, unknown[]][]): Promise<void> {
 // Bump whenever schema.sql or the ALTER migrations below change, so existing
 // databases re-run the full init once. Between bumps, a cold instance skips the
 // schema round trips after a single cheap marker check.
-const SCHEMA_VERSION = "2026-07-18-init";
+const SCHEMA_VERSION = "2026-07-18-homework-records";
+
+// 國中科目預設清單（可日後在 subjects 表增減）。
+const DEFAULT_SUBJECTS = ["國文", "英文", "數學", "自然", "歷史", "地理", "公民"];
 
 async function runInit(): Promise<void> {
   const be = await getBackend();
@@ -192,7 +195,18 @@ async function runInit(): Promise<void> {
     if (stmt.trim()) await be.query(stmt, []);
   }
   // Idempotent column migrations go here as the schema grows, e.g.:
-  //   await be.query("ALTER TABLE notes ADD COLUMN IF NOT EXISTS pinned INTEGER DEFAULT 0", []);
+  //   await be.query("ALTER TABLE records ADD COLUMN IF NOT EXISTS note TEXT DEFAULT ''", []);
+
+  // Seed the default 科別 once (only when the table is empty, so edits stick).
+  const subjectCount = await be.query("SELECT COUNT(*) AS n FROM subjects", []);
+  if (Number((subjectCount[0] as { n: number }).n) === 0) {
+    await be.tx(
+      DEFAULT_SUBJECTS.map((name, i) => [
+        "INSERT INTO subjects (name, sort_order) VALUES ($1,$2)",
+        [name, i],
+      ]),
+    );
+  }
 
   // Mark this schema version as applied so later cold instances take the fast
   // path above instead of re-running the whole init.

@@ -7,8 +7,9 @@ export default function Nav({ authEnabled }: { authEnabled: boolean }) {
       <Link className="navbar-brand fw-bold" href="/">
         <i className="bi bi-mortarboard-fill text-primary me-2"></i>Teacher Assistant
       </Link>
-      <div className="ms-auto d-flex align-items-center gap-2">
-        <Link className="nav-link" href="/">首頁</Link>
+      <div className="ms-auto d-flex align-items-center gap-3">
+        <Link className="nav-link" href="/">登記</Link>
+        <Link className="nav-link" href="/admin">彙整</Link>
         {authEnabled && (
           <form action={logout}>
             <button className="btn btn-outline-secondary btn-sm" type="submit">
