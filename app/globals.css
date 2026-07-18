@@ -98,6 +98,10 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .action-bar .btn-lg { height: 44px; padding-block: .4rem; font-size: .95rem; }
 .undo-toast { position: fixed; right: 24px; bottom: 24px; z-index: 1100; display: flex; align-items: center; gap: 22px; padding: 12px 14px; border-radius: 10px; color: white; background: #20242c; box-shadow: 0 12px 32px rgba(0, 0, 0, .25); font-size: .85rem; }
 .undo-toast button { padding: 2px 5px; border: 0; color: #8db6ff; background: transparent; font-weight: 800; }
+.subject-required-state { display: grid; justify-items: center; gap: 6px; padding: 72px 20px; border: 1px dashed var(--bs-border-color); border-radius: 12px; color: var(--bs-secondary-color); background: var(--bs-tertiary-bg); text-align: center; }
+.subject-required-state i { margin-bottom: 3px; color: var(--bs-primary); font-size: 2rem; }
+.subject-required-state strong { color: var(--bs-body-color); font-size: 1.05rem; }
+.subject-required-state span { font-size: .8rem; }
 
 .count-pill { padding: 5px 10px; border-radius: 999px; color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .1); font-size: .75rem; font-weight: 800; }
 .record-scroll { display: grid; gap: 8px; max-height: calc(100vh - 190px); overflow-y: auto; padding-right: 3px; }

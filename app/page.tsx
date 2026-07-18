@@ -10,7 +10,7 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
   const today = new Date().toISOString().slice(0, 10);
   const subjects = await getSubjects();
   const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : today;
-  const subject = subjects.some((item) => item.name === sp.subject) ? sp.subject! : (subjects[0]?.name ?? "");
+  const subject = subjects.some((item) => item.name === sp.subject) ? sp.subject! : "";
   const records = subject ? await getDayRecords(date, subject) : [];
   const openCount = records.filter((record) => record.status === "open").length;
   const resolvedCount = records.length - openCount;
@@ -37,7 +37,13 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
 
           <div className="panel-divider" />
           <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>點選本次未交座號</h2></div></div>
-          {subject ? <SeatSelector date={date} subject={subject} seatCount={SEAT_COUNT} records={records.map(({ id, seat, status }) => ({ id, seat, status }))} action={logRecords} markLateAction={markLate} reopenAction={reopenRecord} removeAction={removeRecord} /> : <div className="alert alert-warning mb-0">目前沒有科目，請先完成科目設定。</div>}
+          {subject ? (
+            <SeatSelector date={date} subject={subject} seatCount={SEAT_COUNT} records={records.map(({ id, seat, status }) => ({ id, seat, status }))} action={logRecords} markLateAction={markLate} reopenAction={reopenRecord} removeAction={removeRecord} />
+          ) : subjects.length === 0 ? (
+            <div className="alert alert-warning mb-0">目前沒有科目，請先完成科目設定。</div>
+          ) : (
+            <div className="subject-required-state"><i className="bi bi-hand-index-thumb" /><strong>請先選擇科目</strong><span>點選上方科目後，才會顯示座號與作業紀錄。</span></div>
+          )}
         </section>
       </div>
     </main>
