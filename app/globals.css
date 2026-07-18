@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Bootstrap (loaded via CDN in layout.tsx) supplies the component classes; use
+   Tailwind utilities alongside it, or drop Bootstrap and go Tailwind-only. */
+
+:root {
+  --font-sans: var(--font-roboto), var(--font-noto-tc), system-ui, sans-serif;
+  --font-mono: var(--font-roboto-mono), ui-monospace, monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+.font-monospace {
+  font-family: var(--font-mono);
+}
