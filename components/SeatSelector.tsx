@@ -17,17 +17,21 @@ export default function SeatSelector({
   date,
   subject,
   seatCount,
-  loggedSeats,
+  openSeats,
+  resolvedSeats,
   action,
 }: {
   date: string;
   subject: string;
   seatCount: number;
-  loggedSeats: number[];
+  openSeats: number[];
+  resolvedSeats: number[];
   action: (formData: FormData) => Promise<void>;
 }) {
   const [selected, setSelected] = useState<number[]>([]);
-  const logged = new Set(loggedSeats);
+  const open = new Set(openSeats);
+  const resolved = new Set(resolvedSeats);
+  const logged = new Set([...openSeats, ...resolvedSeats]);
   const available = Array.from({ length: seatCount }, (_, index) => index + 1).filter((seat) => !logged.has(seat));
 
   function toggle(seat: number) {
@@ -45,20 +49,22 @@ export default function SeatSelector({
       <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
         <div>
           <div className="fw-bold">點選未交作業的座號</div>
-          <div className="text-body-secondary small">灰色代表今天已登記</div>
+          <div className="text-body-secondary small">淡紅色為未交，淡綠色為已補交</div>
         </div>
         <span className="badge rounded-pill text-bg-primary fs-6">已選 {selected.length}</span>
       </div>
 
       <div className="seat-grid mb-3" role="group" aria-label="學生座號">
         {Array.from({ length: seatCount }, (_, index) => index + 1).map((seat) => {
-          const disabled = logged.has(seat);
+          const isOpen = open.has(seat);
+          const isResolved = resolved.has(seat);
+          const disabled = isOpen || isResolved;
           const active = selected.includes(seat);
           return (
             <button
               key={seat}
               type="button"
-              className={`seat-button ${active ? "is-selected" : ""} ${disabled ? "is-logged" : ""}`}
+              className={`seat-button ${active ? "is-selected" : ""} ${isOpen ? "is-open" : ""} ${isResolved ? "is-resolved" : ""}`}
               disabled={disabled}
               aria-pressed={active}
               onClick={() => toggle(seat)}

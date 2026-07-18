@@ -31,8 +31,8 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
           </form>
 
           <div className="panel-divider" />
-          <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>選擇未交學生</h2></div><span className="legend"><i />已登記</span></div>
-          {subject ? <SeatSelector date={date} subject={subject} seatCount={SEAT_COUNT} loggedSeats={records.map((r) => r.seat)} action={logRecords} /> : <div className="alert alert-warning mb-0">目前沒有科目，請先完成科目設定。</div>}
+          <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>選擇未交學生</h2></div><div className="d-flex gap-3"><span className="legend legend-open"><i />未交</span><span className="legend legend-resolved"><i />已補交</span></div></div>
+          {subject ? <SeatSelector date={date} subject={subject} seatCount={SEAT_COUNT} openSeats={records.filter((r) => r.status === "open").map((r) => r.seat)} resolvedSeats={records.filter((r) => r.status === "late").map((r) => r.seat)} action={logRecords} /> : <div className="alert alert-warning mb-0">目前沒有科目，請先完成科目設定。</div>}
         </section>
 
         <aside className="records-panel">

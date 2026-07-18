@@ -51,6 +51,8 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .course-toolbar .form-control, .course-toolbar .form-select, .course-toolbar .btn { height: 42px; }
 .legend { display: flex; align-items: center; gap: 7px; color: var(--bs-secondary-color); font-size: .75rem; }
 .legend i { width: 11px; height: 11px; border-radius: 3px; background: var(--bs-tertiary-bg); border: 1px dashed var(--bs-border-color); }
+.legend-open i { border-color: rgba(var(--bs-danger-rgb), .4); background: rgba(var(--bs-danger-rgb), .14); }
+.legend-resolved i { border-color: rgba(var(--bs-success-rgb), .4); background: rgba(var(--bs-success-rgb), .12); }
 
 .seat-form > .d-flex:first-of-type { margin-bottom: 14px !important; padding: 10px 12px; border-radius: 10px; background: var(--bs-tertiary-bg); }
 .seat-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 9px; }
@@ -58,8 +60,9 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .seat-button:hover:not(:disabled) { z-index: 1; transform: translateY(-2px); border-color: var(--bs-primary); color: var(--bs-primary); box-shadow: 0 6px 16px rgba(var(--bs-primary-rgb), .12); }
 .seat-button.is-selected { border-color: var(--bs-primary); background: var(--bs-primary); color: white; box-shadow: 0 6px 16px rgba(var(--bs-primary-rgb), .25); }
 .seat-button.is-selected:hover { color: white; }
-.seat-button.is-logged { border-style: dashed; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); opacity: .62; }
-.seat-button i { position: absolute; right: 5px; bottom: 3px; color: var(--bs-success); font-size: .65rem; }
+.seat-button.is-open { border-color: rgba(var(--bs-danger-rgb), .35); background: rgba(var(--bs-danger-rgb), .12); color: var(--bs-danger); opacity: 1; }
+.seat-button.is-resolved { border-color: rgba(var(--bs-success-rgb), .35); background: rgba(var(--bs-success-rgb), .1); color: var(--bs-success); opacity: .8; }
+.seat-button i { position: absolute; right: 5px; bottom: 3px; color: currentColor; font-size: .65rem; }
 .action-bar { align-items: center; margin-top: 16px; }
 .action-bar .btn-lg { height: 44px; padding-block: .4rem; font-size: .95rem; }
 .action-bar .btn-link { width: auto !important; margin-left: auto; }
