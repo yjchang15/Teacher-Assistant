@@ -1,36 +1,45 @@
 import { type NextRequest } from "next/server";
 import * as XLSX from "xlsx";
 import { getMatrix } from "@/lib/queries";
-import { rangeFor, isRangePreset, type RangePreset } from "@/lib/dates";
 
-// GET /admin/export?range=all — the 座號 × 科別 矩陣 as an .xlsx download.
-// Gated by proxy.ts (path starts with /admin).
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function todayInTaipei() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export async function GET(req: NextRequest) {
-  const rangeParam = req.nextUrl.searchParams.get("range") ?? "";
-  const preset: RangePreset = isRangePreset(rangeParam) ? rangeParam : "all";
-  const today = new Date().toISOString().slice(0, 10);
-  const { start, end } = rangeFor(preset, today);
+  const today = todayInTaipei();
+  const startParam = req.nextUrl.searchParams.get("start") ?? "";
+  const endParam = req.nextUrl.searchParams.get("end") ?? "";
+  const rawStart = ISO_DATE.test(startParam) ? startParam : today;
+  const rawEnd = ISO_DATE.test(endParam) ? endParam : today;
+  const start = rawStart <= rawEnd ? rawStart : rawEnd;
+  const end = rawStart <= rawEnd ? rawEnd : rawStart;
   const matrix = await getMatrix(start, end);
+  const rows = matrix.rows.filter((row) => row.total > 0);
 
   const header = ["座號", ...matrix.subjects, "未交合計"];
-  const body = matrix.rows.map((row) => [
+  const body = rows.map((row) => [
     row.seat,
-    ...matrix.subjects.map((s) => row.counts[s] ?? 0),
+    ...matrix.subjects.map((subject) => row.counts[subject] ?? 0),
     row.total,
   ]);
-  const footer = ["合計", ...matrix.subjects.map((s) => matrix.colTotals[s] ?? 0), matrix.grandTotal];
+  const footer = ["合計", ...matrix.subjects.map((subject) => matrix.colTotals[subject] ?? 0), matrix.grandTotal];
+  const worksheet = XLSX.utils.aoa_to_sheet([header, ...body, footer]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "未交作業統計");
+  const buffer: Buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
-  const ws = XLSX.utils.aoa_to_sheet([header, ...body, footer]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "未交彙整");
-  const buf: Buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-
-  // ASCII only — HTTP header values are Latin1, so no Chinese in the filename.
-  const tag = preset === "all" ? "all" : `${start}_${end}`;
-  return new Response(new Uint8Array(buf), {
+  return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="homework-${tag}.xlsx"`,
+      "Content-Disposition": `attachment; filename="homework-${start}_${end}.xlsx"`,
     },
   });
 }
