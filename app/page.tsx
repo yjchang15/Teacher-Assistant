@@ -1,6 +1,7 @@
 import { getSubjects, getDayRecords, SEAT_COUNT } from "@/lib/queries";
 import { logRecords, markLate, reopenRecord, removeRecord } from "@/app/actions";
 import SeatSelector from "@/components/SeatSelector";
+import CourseSelector from "@/components/CourseSelector";
 
 export const dynamic = "force-dynamic";
 
@@ -24,21 +25,7 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
       <div className="dashboard-grid dashboard-grid-single">
         <section className="workspace-panel">
           <div className="panel-header"><div><span className="panel-kicker">01 / 課程資訊</span><h2>選擇日期與科目</h2></div></div>
-          <form method="get" className="course-toolbar">
-            <div className="date-field"><label htmlFor="date">日期</label><input id="date" type="date" name="date" className="form-control" defaultValue={date} /></div>
-            <fieldset className="subject-field">
-              <legend>科目</legend>
-              <div className="subject-options">
-                {subjects.map((item) => (
-                  <div key={item.id}>
-                    <input id={`subject-${item.id}`} type="radio" name="subject" value={item.name} defaultChecked={item.name === subject} />
-                    <label htmlFor={`subject-${item.id}`}><span>{item.name}</span><i className="bi bi-check-circle-fill" /></label>
-                  </div>
-                ))}
-              </div>
-            </fieldset>
-            <button className="btn btn-primary" type="submit"><i className="bi bi-arrow-repeat me-2" />套用</button>
-          </form>
+          <CourseSelector date={date} subject={subject} subjects={subjects.map(({ id, name }) => ({ id, name }))} />
 
           <div className="panel-divider" />
           <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>選擇未交學生</h2></div><div className="d-flex gap-3"><span className="legend legend-open"><i />未交</span><span className="legend legend-resolved"><i />已補交</span></div></div>
