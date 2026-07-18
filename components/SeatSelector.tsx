@@ -34,8 +34,6 @@ export default function SeatSelector({
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const recordBySeat = new Map(records.map((record) => [record.seat, record]));
-  const logged = new Set(records.map((record) => record.seat));
-  const available = Array.from({ length: seatCount }, (_, index) => index + 1).filter((seat) => !logged.has(seat));
 
   function toggle(seat: number) {
     setSelected((current) =>
@@ -108,11 +106,6 @@ export default function SeatSelector({
         <button className="btn btn-outline-secondary btn-lg" type="button" disabled={!selected.length} onClick={() => setSelected([])}>
           清除
         </button>
-        {available.length > 0 && (
-          <button className="btn btn-link btn-sm w-100" type="button" onClick={() => setSelected(available)}>
-            全選空白座號
-          </button>
-        )}
       </form>
     </div>
   );
