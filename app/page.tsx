@@ -5,11 +5,21 @@ import CourseSelector from "@/components/CourseSelector";
 
 export const dynamic = "force-dynamic";
 
+function todayInTaipei() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export default async function LogPage({ searchParams }: { searchParams: Promise<{ date?: string; subject?: string; deletedSeat?: string; deletedStatus?: string }> }) {
   const sp = await searchParams;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInTaipei();
   const subjects = await getSubjects();
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : today;
+  const requestedDate = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : today;
+  const date = requestedDate <= today ? requestedDate : today;
   const subject = subjects.some((item) => item.name === sp.subject) ? sp.subject! : "";
   const records = subject ? await getDayRecords(date, subject) : [];
   const openCount = records.filter((record) => record.status === "open").length;
@@ -33,7 +43,7 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
       <div className="dashboard-grid dashboard-grid-single">
         <section className="workspace-panel">
           <div className="panel-header course-panel-header"><div><span className="panel-kicker">01 / 課程資訊</span><h2>選擇日期與科目</h2></div><div className="inline-summary"><span>{subject || "—"}</span><span className="is-open">未交 <strong>{openCount}</strong></span><span className="is-resolved">已補交 <strong>{resolvedCount}</strong></span></div></div>
-          <CourseSelector date={date} subject={subject} subjects={subjects.map(({ id, name }) => ({ id, name }))} />
+          <CourseSelector date={date} subject={subject} subjects={subjects.map(({ id, name }) => ({ id, name }))} maxDate={today} />
 
           <div className="panel-divider" />
           <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>點選本次未交座號</h2></div></div>

@@ -22,8 +22,10 @@ export default async function AdminPage({
 }) {
   const sp = await searchParams;
   const today = todayInTaipei();
-  const rawStart = ISO_DATE.test(sp.start ?? "") ? sp.start! : today;
-  const rawEnd = ISO_DATE.test(sp.end ?? "") ? sp.end! : today;
+  const requestedStart = ISO_DATE.test(sp.start ?? "") ? sp.start! : today;
+  const requestedEnd = ISO_DATE.test(sp.end ?? "") ? sp.end! : today;
+  const rawStart = requestedStart <= today ? requestedStart : today;
+  const rawEnd = requestedEnd <= today ? requestedEnd : today;
   const start = rawStart <= rawEnd ? rawStart : rawEnd;
   const end = rawStart <= rawEnd ? rawEnd : rawStart;
   const sortByTotal = sp.sort === "total";
@@ -52,12 +54,12 @@ export default async function AdminPage({
           <form method="get" className="admin-date-range d-flex align-items-end gap-3">
             <div>
               <label className="form-label fw-semibold small" htmlFor="start">起始日期</label>
-              <input id="start" className="form-control" type="date" name="start" defaultValue={start} />
+              <input id="start" className="form-control" type="date" name="start" defaultValue={start} max={today} />
             </div>
             <span className="date-range-separator">至</span>
             <div>
               <label className="form-label fw-semibold small" htmlFor="end">結束日期</label>
-              <input id="end" className="form-control" type="date" name="end" defaultValue={end} />
+              <input id="end" className="form-control" type="date" name="end" defaultValue={end} max={today} />
             </div>
             {sortByTotal && <input type="hidden" name="sort" value="total" />}
             <button className="btn btn-primary" type="submit"><i className="bi bi-search me-2" />查詢</button>

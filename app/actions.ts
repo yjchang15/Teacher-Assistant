@@ -14,6 +14,15 @@ function revalidateAll() {
   revalidatePath("/admin");
 }
 
+function todayInTaipei() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 export async function login(formData: FormData) {
@@ -45,7 +54,9 @@ export async function logRecords(formData: FormData) {
   const date = s(formData, "date");
   const subject = s(formData, "subject");
   const seats = formData.getAll("seats").map((v) => Math.trunc(Number(v)));
-  if (date && subject) await db.addRecords(date, subject, seats);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date <= todayInTaipei() && subject) {
+    await db.addRecords(date, subject, seats);
+  }
   revalidateAll();
 }
 

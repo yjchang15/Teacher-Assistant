@@ -17,8 +17,10 @@ export async function GET(req: NextRequest) {
   const today = todayInTaipei();
   const startParam = req.nextUrl.searchParams.get("start") ?? "";
   const endParam = req.nextUrl.searchParams.get("end") ?? "";
-  const rawStart = ISO_DATE.test(startParam) ? startParam : today;
-  const rawEnd = ISO_DATE.test(endParam) ? endParam : today;
+  const requestedStart = ISO_DATE.test(startParam) ? startParam : today;
+  const requestedEnd = ISO_DATE.test(endParam) ? endParam : today;
+  const rawStart = requestedStart <= today ? requestedStart : today;
+  const rawEnd = requestedEnd <= today ? requestedEnd : today;
   const start = rawStart <= rawEnd ? rawStart : rawEnd;
   const end = rawStart <= rawEnd ? rawEnd : rawStart;
   const matrix = await getMatrix(start, end);

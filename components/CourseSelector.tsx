@@ -6,17 +6,19 @@ export default function CourseSelector({
   date,
   subject,
   subjects,
+  maxDate,
 }: {
   date: string;
   subject: string;
   subjects: { id: number; name: string }[];
+  maxDate: string;
 }) {
   const [applying, setApplying] = useState(false);
   return (
     <form method="get" className={`course-toolbar ${applying ? "is-applying" : ""}`} onChange={(event) => { setApplying(true); event.currentTarget.requestSubmit(); }}>
       <div className="date-field">
         <label htmlFor="date">日期</label>
-        <input id="date" type="date" name="date" className="form-control" defaultValue={date} />
+        <input id="date" type="date" name="date" className="form-control" defaultValue={date} max={maxDate} />
       </div>
       <fieldset className="subject-field">
         <legend>科目</legend>
