@@ -12,69 +12,45 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
   const subject = subjects.some((item) => item.name === sp.subject) ? sp.subject! : (subjects[0]?.name ?? "");
   const records = subject ? await getDayRecords(date, subject) : [];
   const openCount = records.filter((record) => record.status === "open").length;
+  const resolvedCount = records.length - openCount;
 
   return (
-    <main className="student-workflow mx-auto">
-      <header className="mb-4">
-        <span className="eyebrow">小老師工作台</span>
-        <h1 className="h3 fw-bold mt-1 mb-1">登記未交作業</h1>
-        <p className="text-body-secondary mb-0">選好日期與科目，再點選未交同學的座號。</p>
+    <main className="desktop-dashboard">
+      <header className="page-header">
+        <div><span className="eyebrow">HOMEWORK REGISTER</span><h1>作業登記工作台</h1><p>選擇課程後，直接點選未交作業的學生座號。</p></div>
+        <div className="summary-strip"><div><span>科目</span><strong>{subject || "—"}</strong></div><div><span>未交</span><strong className="text-danger">{openCount}</strong></div><div><span>已補交</span><strong className="text-success">{resolvedCount}</strong></div></div>
       </header>
 
-      <section className="card workflow-card mb-3" aria-labelledby="step-one">
-        <div className="card-body">
-          <div className="step-heading" id="step-one"><span>1</span>確認課程</div>
-          <form method="get" className="row g-3 align-items-end">
-            <div className="col-12 col-sm-6">
-              <label className="form-label fw-semibold" htmlFor="date">日期</label>
-              <input id="date" type="date" name="date" className="form-control form-control-lg" defaultValue={date} />
-            </div>
-            <div className="col-12 col-sm-6">
-              <label className="form-label fw-semibold" htmlFor="subject">科目</label>
-              <select id="subject" name="subject" className="form-select form-select-lg" defaultValue={subject}>
-                {subjects.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
-              </select>
-            </div>
-            <div className="col-12">
-              <button className="btn btn-outline-primary w-100" type="submit"><i className="bi bi-arrow-repeat me-2" />更新名單</button>
-            </div>
+      <div className="dashboard-grid">
+        <section className="workspace-panel">
+          <div className="panel-header"><div><span className="panel-kicker">01 / 課程資訊</span><h2>選擇日期與科目</h2></div></div>
+          <form method="get" className="course-toolbar">
+            <div><label htmlFor="date">日期</label><input id="date" type="date" name="date" className="form-control" defaultValue={date} /></div>
+            <div><label htmlFor="subject">科目</label><select id="subject" name="subject" className="form-select" defaultValue={subject}>{subjects.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></div>
+            <button className="btn btn-primary" type="submit"><i className="bi bi-arrow-repeat me-2" />套用</button>
           </form>
-        </div>
-      </section>
 
-      <section className="card workflow-card mb-4" aria-labelledby="step-two">
-        <div className="card-body">
-          <div className="step-heading" id="step-two"><span>2</span>選擇座號</div>
-          {subject ? <SeatSelector date={date} subject={subject} seatCount={SEAT_COUNT} loggedSeats={records.map((r) => r.seat)} action={logRecords} /> : <div className="alert alert-warning mb-0">目前沒有科目，請請老師先完成設定。</div>}
-        </div>
-      </section>
+          <div className="panel-divider" />
+          <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>選擇未交學生</h2></div><span className="legend"><i />已登記</span></div>
+          {subject ? <SeatSelector date={date} subject={subject} seatCount={SEAT_COUNT} loggedSeats={records.map((r) => r.seat)} action={logRecords} /> : <div className="alert alert-warning mb-0">目前沒有科目，請先完成科目設定。</div>}
+        </section>
 
-      <section aria-labelledby="today-records">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <h2 className="h5 fw-bold mb-0" id="today-records">今日登記</h2>
-          <span className={`badge ${openCount ? "text-bg-danger" : "text-bg-secondary"}`}>{openCount} 位未交</span>
-        </div>
-        {records.length === 0 ? (
-          <div className="empty-state"><i className="bi bi-clipboard-check" /><strong>尚無登記</strong><span>完成登記後會顯示在這裡</span></div>
-        ) : (
-          <div className="record-list">
-            {records.map((record) => (
+        <aside className="records-panel">
+          <div className="panel-header"><div><span className="panel-kicker">TODAY</span><h2>本次登記名單</h2></div><span className="count-pill">{records.length} 筆</span></div>
+          <div className="record-scroll">
+            {records.length === 0 ? <div className="empty-state"><i className="bi bi-inbox" /><strong>目前沒有紀錄</strong><span>左側完成登記後，名單會顯示於此。</span></div> : records.map((record) => (
               <article key={record.id} className="record-item">
                 <div className="record-seat">{record.seat}</div>
-                <div className="flex-grow-1"><div className="fw-bold">{record.seat} 號</div><span className={`status-label ${record.status === "late" ? "resolved" : "open"}`}>{record.status === "late" ? "已補交" : "尚未繳交"}</span></div>
-                <div className="d-flex gap-2">
-                  {record.status === "open" ? (
-                    <form action={markLate}><input type="hidden" name="id" value={record.id} /><button className="btn btn-success" title="標記為已補交" type="submit"><i className="bi bi-check-lg" /><span className="d-none d-sm-inline ms-1">已補交</span></button></form>
-                  ) : (
-                    <form action={reopenRecord}><input type="hidden" name="id" value={record.id} /><button className="btn btn-outline-secondary" title="改回未交" type="submit"><i className="bi bi-arrow-counterclockwise" /></button></form>
-                  )}
-                  <form action={removeRecord}><input type="hidden" name="id" value={record.id} /><button className="btn btn-outline-danger" title="刪除這筆登記" type="submit"><i className="bi bi-trash" /></button></form>
+                <div className="flex-grow-1"><strong>{record.seat} 號學生</strong><span className={`status-label ${record.status === "late" ? "resolved" : "open"}`}>{record.status === "late" ? "已補交" : "尚未繳交"}</span></div>
+                <div className="record-actions">
+                  {record.status === "open" ? <form action={markLate}><input type="hidden" name="id" value={record.id} /><button className="btn btn-success btn-sm" title="標記已補交" type="submit"><i className="bi bi-check-lg" /></button></form> : <form action={reopenRecord}><input type="hidden" name="id" value={record.id} /><button className="btn btn-outline-secondary btn-sm" title="改回未交" type="submit"><i className="bi bi-arrow-counterclockwise" /></button></form>}
+                  <form action={removeRecord}><input type="hidden" name="id" value={record.id} /><button className="btn btn-outline-danger btn-sm" title="刪除" type="submit"><i className="bi bi-trash" /></button></form>
                 </div>
               </article>
             ))}
           </div>
-        )}
-      </section>
+        </aside>
+      </div>
     </main>
   );
 }

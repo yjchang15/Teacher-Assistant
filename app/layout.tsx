@@ -45,7 +45,7 @@ export default async function RootLayout({
       </head>
       <body>
         <Nav authEnabled={AUTH_ENABLED} />
-        <div className="container-fluid app-content" style={{ maxWidth: 1400 }}>
+        <div className="app-content">
           {children}
         </div>
       </body>
