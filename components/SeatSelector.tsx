@@ -17,21 +17,24 @@ export default function SeatSelector({
   date,
   subject,
   seatCount,
-  openSeats,
-  resolvedSeats,
+  records,
   action,
+  markLateAction,
+  reopenAction,
+  removeAction,
 }: {
   date: string;
   subject: string;
   seatCount: number;
-  openSeats: number[];
-  resolvedSeats: number[];
+  records: { id: number; seat: number; status: "open" | "late" }[];
   action: (formData: FormData) => Promise<void>;
+  markLateAction: (formData: FormData) => Promise<void>;
+  reopenAction: (formData: FormData) => Promise<void>;
+  removeAction: (formData: FormData) => Promise<void>;
 }) {
   const [selected, setSelected] = useState<number[]>([]);
-  const open = new Set(openSeats);
-  const resolved = new Set(resolvedSeats);
-  const logged = new Set([...openSeats, ...resolvedSeats]);
+  const recordBySeat = new Map(records.map((record) => [record.seat, record]));
+  const logged = new Set(records.map((record) => record.seat));
   const available = Array.from({ length: seatCount }, (_, index) => index + 1).filter((seat) => !logged.has(seat));
 
   function toggle(seat: number) {
@@ -49,28 +52,40 @@ export default function SeatSelector({
       <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
         <div>
           <div className="fw-bold">點選未交作業的座號</div>
-          <div className="text-body-secondary small">淡紅色為未交，淡綠色為已補交</div>
+          <div className="seat-status-keys" aria-label="座號狀態圖例">
+            <span className="seat-status-key is-open"><i className="bi bi-x-circle-fill" />未交</span>
+            <span className="seat-status-key is-resolved"><i className="bi bi-check-circle-fill" />已補交</span>
+          </div>
         </div>
         <span className="badge rounded-pill text-bg-primary fs-6">已選 {selected.length}</span>
       </div>
 
       <div className="seat-grid mb-3" role="group" aria-label="學生座號">
         {Array.from({ length: seatCount }, (_, index) => index + 1).map((seat) => {
-          const isOpen = open.has(seat);
-          const isResolved = resolved.has(seat);
-          const disabled = isOpen || isResolved;
+          const record = recordBySeat.get(seat);
           const active = selected.includes(seat);
+          if (record) {
+            const isOpen = record.status === "open";
+            return (
+              <div key={seat} className={`seat-button seat-record ${isOpen ? "is-open" : "is-resolved"}`}>
+                <strong>{seat}</strong>
+                <span>{isOpen ? "作業缺交" : "已補交"}</span>
+                <div className="seat-record-actions">
+                  <button type="submit" name="id" value={record.id} formAction={isOpen ? markLateAction : reopenAction} title={isOpen ? "標記已補交" : "改回作業缺交"}><i className={`bi ${isOpen ? "bi-check-lg" : "bi-arrow-counterclockwise"}`} /></button>
+                  <button type="submit" name="id" value={record.id} formAction={removeAction} title="刪除紀錄"><i className="bi bi-trash" /></button>
+                </div>
+              </div>
+            );
+          }
           return (
             <button
               key={seat}
               type="button"
-              className={`seat-button ${active ? "is-selected" : ""} ${isOpen ? "is-open" : ""} ${isResolved ? "is-resolved" : ""}`}
-              disabled={disabled}
+              className={`seat-button ${active ? "is-selected" : ""}`}
               aria-pressed={active}
               onClick={() => toggle(seat)}
             >
-              <span>{seat}</span>
-              {disabled && <i className="bi bi-check-circle-fill" aria-hidden="true" />}
+              <strong>{seat}</strong>
             </button>
           );
         })}
