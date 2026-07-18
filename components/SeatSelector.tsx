@@ -71,15 +71,12 @@ export default function SeatSelector({
                     <input type="hidden" name="id" value={record.id} />
                     <button className="seat-status-action" type="submit" title={isOpen ? "標記已補交" : "改回作業缺交"}><i className={`bi ${isOpen ? "bi-check-lg" : "bi-arrow-counterclockwise"}`} />{isOpen ? "已補交" : "還原"}</button>
                   </form>
-                  <details className="seat-more">
-                    <summary title="更多操作" aria-label={`${seat} 號更多操作`}><i className="bi bi-three-dots" /></summary>
-                    <form action={removeAction}>
-                      <input type="hidden" name="id" value={record.id} /><input type="hidden" name="date" value={date} />
-                      <input type="hidden" name="subject" value={subject} /><input type="hidden" name="seat" value={seat} />
-                      <input type="hidden" name="status" value={record.status} />
-                      <button type="submit"><i className="bi bi-trash3" />刪除紀錄</button>
-                    </form>
-                  </details>
+                  <form action={removeAction} onSubmit={(event) => { if (!window.confirm(`確定刪除 ${seat} 號的紀錄？`)) event.preventDefault(); }}>
+                    <input type="hidden" name="id" value={record.id} /><input type="hidden" name="date" value={date} />
+                    <input type="hidden" name="subject" value={subject} /><input type="hidden" name="seat" value={seat} />
+                    <input type="hidden" name="status" value={record.status} />
+                    <button className="seat-delete-action" type="submit" title="刪除紀錄" aria-label={`刪除 ${seat} 號紀錄`}><i className="bi bi-trash3" /></button>
+                  </form>
                 </div>
               </div>
             );

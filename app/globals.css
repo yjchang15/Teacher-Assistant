@@ -86,16 +86,14 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .seat-button.is-open { border-color: rgba(var(--bs-danger-rgb), .35); background: rgba(var(--bs-danger-rgb), .12); color: var(--bs-danger); opacity: 1; }
 .seat-button.is-resolved { border-color: rgba(var(--bs-success-rgb), .35); background: rgba(var(--bs-success-rgb), .1); color: var(--bs-success); opacity: .8; }
 .seat-button i { position: absolute; right: 5px; bottom: 3px; color: currentColor; font-size: .65rem; }
-.seat-record { grid-template-rows: auto auto 24px; place-items: center; padding: 6px 6px 4px; }
-.seat-record strong { line-height: 1; font-size: 1.32rem; }
-.seat-record > span { line-height: 1; font-size: .68rem; font-weight: 800; }
+.seat-record { grid-template-rows: 28px 17px 25px; place-items: center; padding: 5px 6px 4px; }
+.seat-record strong { line-height: 1; font-size: 1.6rem; }
+.seat-record > span { line-height: 1; font-size: .76rem; font-weight: 800; }
 .seat-record-actions { position: relative; display: flex; align-items: center; gap: 4px; }
-.seat-record-actions button, .seat-more summary { display: inline-flex; align-items: center; justify-content: center; gap: 3px; height: 22px; padding: 0 7px; border: 0; border-radius: 5px; color: currentColor; background: rgba(255, 255, 255, .6); font-size: .66rem; font-weight: 800; cursor: pointer; list-style: none; }
+.seat-record-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 3px; height: 23px; padding: 0 8px; border: 0; border-radius: 5px; color: currentColor; background: rgba(255, 255, 255, .6); font-size: .72rem; font-weight: 800; cursor: pointer; }
 .seat-record-actions button:hover { background: rgba(255, 255, 255, .95); }
-.seat-record-actions i { position: static; font-size: .68rem; }
-.seat-more summary::-webkit-details-marker { display: none; }
-.seat-more form { position: absolute; right: 0; top: 26px; z-index: 20; width: 112px; padding: 5px; border: 1px solid var(--bs-border-color); border-radius: 7px; background: var(--bs-body-bg); box-shadow: 0 8px 22px rgba(0, 0, 0, .14); }
-.seat-more form button { width: 100%; height: 28px; color: var(--bs-danger); background: transparent; }
+.seat-record-actions i { position: static; font-size: .72rem; }
+.seat-record-actions .seat-delete-action { width: 25px; padding: 0; color: var(--bs-danger); }
 .action-bar { position: sticky; bottom: 12px; z-index: 15; align-items: center; margin: 16px -8px -8px; padding: 10px; border: 1px solid var(--bs-border-color); border-radius: 11px; background: color-mix(in srgb, var(--bs-body-bg) 94%, transparent); box-shadow: 0 8px 24px rgba(20, 30, 50, .1); backdrop-filter: blur(10px); }
 .action-bar .btn-lg { height: 44px; padding-block: .4rem; font-size: .95rem; }
 .undo-toast { position: fixed; right: 24px; bottom: 24px; z-index: 1100; display: flex; align-items: center; gap: 22px; padding: 12px 14px; border-radius: 10px; color: white; background: #20242c; box-shadow: 0 12px 32px rgba(0, 0, 0, .25); font-size: .85rem; }
