@@ -6,12 +6,64 @@
 :root {
   --font-sans: var(--font-roboto), var(--font-noto-tc), system-ui, sans-serif;
   --font-mono: var(--font-roboto-mono), ui-monospace, monospace;
+  --app-radius: 1rem;
 }
 
 body {
   font-family: var(--font-sans);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  transition: background-color 160ms ease, color 160ms ease;
 }
 
 .font-monospace {
   font-family: var(--font-mono);
+}
+
+.theme-toggle {
+  width: 2.125rem;
+  height: 2.125rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+
+.app-navbar { padding: .75rem clamp(1rem, 4vw, 2rem); background: color-mix(in srgb, var(--bs-body-bg) 92%, transparent); backdrop-filter: blur(12px); z-index: 1020; }
+.app-navbar .nav-link { border-radius: .6rem; padding: .45rem .65rem; font-weight: 600; }
+.app-navbar .nav-link:hover { background: var(--bs-tertiary-bg); }
+.app-content { padding: clamp(1.25rem, 4vw, 2rem); }
+.student-workflow { max-width: 760px; }
+.eyebrow { color: var(--bs-primary); font-size: .78rem; font-weight: 800; letter-spacing: .12em; }
+.workflow-card { border: 1px solid var(--bs-border-color-translucent); border-radius: var(--app-radius); box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .05); }
+.workflow-card .card-body { padding: clamp(1rem, 4vw, 1.5rem); }
+.step-heading { display: flex; align-items: center; gap: .6rem; margin-bottom: 1rem; font-weight: 800; }
+.step-heading > span { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; color: white; background: var(--bs-primary); }
+.seat-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: .55rem; }
+.seat-button { position: relative; aspect-ratio: 1; min-width: 0; border: 2px solid var(--bs-border-color); border-radius: .8rem; background: var(--bs-body-bg); color: var(--bs-body-color); font-size: 1.05rem; font-weight: 800; transition: transform .12s ease, border-color .12s ease, background-color .12s ease; }
+.seat-button:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--bs-primary); }
+.seat-button.is-selected { border-color: var(--bs-primary); background: var(--bs-primary); color: white; box-shadow: 0 .25rem .75rem rgba(var(--bs-primary-rgb), .3); }
+.seat-button.is-logged { border-style: dashed; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); opacity: .68; }
+.seat-button i { position: absolute; right: .18rem; bottom: .08rem; font-size: .65rem; color: var(--bs-success); }
+.record-list { display: grid; gap: .65rem; }
+.record-item { display: flex; align-items: center; gap: .85rem; padding: .85rem; border: 1px solid var(--bs-border-color); border-radius: .9rem; background: var(--bs-body-bg); }
+.record-seat { display: grid; place-items: center; width: 3rem; height: 3rem; flex: 0 0 auto; border-radius: .75rem; background: var(--bs-tertiary-bg); font-size: 1.15rem; font-weight: 800; }
+.status-label { font-size: .78rem; font-weight: 700; }
+.status-label.open { color: var(--bs-danger); }
+.status-label.resolved { color: var(--bs-success); }
+.empty-state { display: grid; justify-items: center; gap: .3rem; padding: 2.5rem 1rem; color: var(--bs-secondary-color); border: 1px dashed var(--bs-border-color); border-radius: var(--app-radius); }
+.empty-state i { font-size: 2rem; color: var(--bs-success); }
+
+@media (max-width: 575.98px) {
+  .app-navbar .ms-auto { gap: .25rem !important; }
+  .app-navbar .nav-link { font-size: .88rem; padding-inline: .45rem; }
+  .app-content { padding-inline: .85rem; }
+  .seat-grid { grid-template-columns: repeat(4, 1fr); gap: .65rem; }
+  .seat-button { min-height: 3.35rem; }
+  .action-bar { position: sticky; bottom: .5rem; padding: .65rem; margin: 0 -.35rem -.35rem; border: 1px solid var(--bs-border-color); border-radius: .85rem; background: color-mix(in srgb, var(--bs-body-bg) 94%, transparent); backdrop-filter: blur(10px); z-index: 10; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
 }

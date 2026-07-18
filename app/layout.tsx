@@ -31,13 +31,13 @@ export default async function RootLayout({
   const themeCookie = (await cookies()).get("theme")?.value;
   const theme = themeCookie === "dark" || themeCookie === "light" ? themeCookie : undefined;
   return (
-    <html lang="zh-TW" suppressHydrationWarning data-bs-theme={theme} className={`${roboto.variable} ${robotoMono.variable} ${notoTC.variable}`}>
+    <html lang="zh-TW" suppressHydrationWarning data-bs-theme={theme} style={{ colorScheme: theme }} className={`${roboto.variable} ${robotoMono.variable} ${notoTC.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         {/* Set the theme before first paint to avoid a light→dark flash. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-bs-theme',t);document.cookie='theme='+t+';path=/;max-age=31536000;samesite=lax';}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-bs-theme',t);document.documentElement.style.colorScheme=t;document.cookie='theme='+t+';path=/;max-age=31536000;samesite=lax';}catch(e){}})();`,
           }}
         />
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -45,7 +45,7 @@ export default async function RootLayout({
       </head>
       <body>
         <Nav authEnabled={AUTH_ENABLED} />
-        <div className="container-fluid px-4 py-4" style={{ maxWidth: 1400 }}>
+        <div className="container-fluid app-content" style={{ maxWidth: 1400 }}>
           {children}
         </div>
       </body>
