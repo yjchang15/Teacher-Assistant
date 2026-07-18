@@ -1,11 +1,11 @@
 import { getSubjects, getDayRecords, SEAT_COUNT } from "@/lib/queries";
-import { logRecords, markLate, reopenRecord, removeRecord } from "@/app/actions";
+import { logRecords, markLate, reopenRecord, removeRecord, undoDeleteRecord } from "@/app/actions";
 import SeatSelector from "@/components/SeatSelector";
 import CourseSelector from "@/components/CourseSelector";
 
 export const dynamic = "force-dynamic";
 
-export default async function LogPage({ searchParams }: { searchParams: Promise<{ date?: string; subject?: string }> }) {
+export default async function LogPage({ searchParams }: { searchParams: Promise<{ date?: string; subject?: string; deletedSeat?: string; deletedStatus?: string }> }) {
   const sp = await searchParams;
   const today = new Date().toISOString().slice(0, 10);
   const subjects = await getSubjects();
@@ -17,18 +17,26 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
 
   return (
     <main className="desktop-dashboard">
-      <header className="page-header">
-        <div><span className="eyebrow">HOMEWORK REGISTER</span><h1>作業登記工作台</h1><p>選擇課程後，直接點選未交作業的學生座號。</p></div>
-        <div className="summary-strip"><div><span>科目</span><strong>{subject || "—"}</strong></div><div><span>未交</span><strong className="text-danger">{openCount}</strong></div><div><span>已補交</span><strong className="text-success">{resolvedCount}</strong></div></div>
-      </header>
+      <header className="page-header"><div><h1>作業登記工作台</h1><p>選擇課程後，直接點選未交作業的學生座號。</p></div></header>
+
+      {sp.deletedSeat && (
+        <div className="undo-toast" role="status">
+          <span><i className="bi bi-trash3 me-2" />已刪除 {sp.deletedSeat} 號的紀錄</span>
+          <form action={undoDeleteRecord}>
+            <input type="hidden" name="date" value={date} /><input type="hidden" name="subject" value={subject} />
+            <input type="hidden" name="seat" value={sp.deletedSeat} /><input type="hidden" name="status" value={sp.deletedStatus ?? "open"} />
+            <button type="submit">復原</button>
+          </form>
+        </div>
+      )}
 
       <div className="dashboard-grid dashboard-grid-single">
         <section className="workspace-panel">
-          <div className="panel-header"><div><span className="panel-kicker">01 / 課程資訊</span><h2>選擇日期與科目</h2></div></div>
+          <div className="panel-header course-panel-header"><div><span className="panel-kicker">01 / 課程資訊</span><h2>選擇日期與科目</h2></div><div className="inline-summary"><span>{subject || "—"}</span><span className="is-open">未交 <strong>{openCount}</strong></span><span className="is-resolved">已補交 <strong>{resolvedCount}</strong></span></div></div>
           <CourseSelector date={date} subject={subject} subjects={subjects.map(({ id, name }) => ({ id, name }))} />
 
           <div className="panel-divider" />
-          <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>選擇未交學生</h2></div><div className="d-flex gap-3"><span className="legend legend-open"><i />未交</span><span className="legend legend-resolved"><i />已補交</span></div></div>
+          <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>點選本次未交座號</h2></div></div>
           {subject ? <SeatSelector date={date} subject={subject} seatCount={SEAT_COUNT} records={records.map(({ id, seat, status }) => ({ id, seat, status }))} action={logRecords} markLateAction={markLate} reopenAction={reopenRecord} removeAction={removeRecord} /> : <div className="alert alert-warning mb-0">目前沒有科目，請先完成科目設定。</div>}
         </section>
       </div>

@@ -58,7 +58,7 @@ export default function SeatSelector({
             <span className="seat-status-key is-resolved"><i className="bi bi-check-circle-fill" />已補交</span>
           </div>
         </div>
-        <span className="badge rounded-pill text-bg-primary fs-6">已選 {selected.length}</span>
+        <span className="badge rounded-pill text-bg-primary fs-6">本次新增 {selected.length} 位</span>
       </div>
 
       <div className="seat-grid mb-3" role="group" aria-label="學生座號">
@@ -74,12 +74,17 @@ export default function SeatSelector({
                 <div className="seat-record-actions">
                   <form action={isOpen ? markLateAction : reopenAction}>
                     <input type="hidden" name="id" value={record.id} />
-                    <button type="submit" title={isOpen ? "標記已補交" : "改回作業缺交"}><i className={`bi ${isOpen ? "bi-check-lg" : "bi-arrow-counterclockwise"}`} /></button>
+                    <button className="seat-status-action" type="submit" title={isOpen ? "標記已補交" : "改回作業缺交"}><i className={`bi ${isOpen ? "bi-check-lg" : "bi-arrow-counterclockwise"}`} />{isOpen ? "已補交" : "還原"}</button>
                   </form>
-                  <form action={removeAction}>
-                    <input type="hidden" name="id" value={record.id} />
-                    <button type="submit" title="刪除紀錄"><i className="bi bi-trash" /></button>
-                  </form>
+                  <details className="seat-more">
+                    <summary title="更多操作" aria-label={`${seat} 號更多操作`}><i className="bi bi-three-dots" /></summary>
+                    <form action={removeAction}>
+                      <input type="hidden" name="id" value={record.id} /><input type="hidden" name="date" value={date} />
+                      <input type="hidden" name="subject" value={subject} /><input type="hidden" name="seat" value={seat} />
+                      <input type="hidden" name="status" value={record.status} />
+                      <button type="submit"><i className="bi bi-trash3" />刪除紀錄</button>
+                    </form>
+                  </details>
                 </div>
               </div>
             );
@@ -108,7 +113,7 @@ export default function SeatSelector({
         </button>
         {available.length > 0 && (
           <button className="btn btn-link btn-sm w-100" type="button" onClick={() => setSelected(available)}>
-            選取全部未登記座號
+            全選空白座號
           </button>
         )}
       </form>

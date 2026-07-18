@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 export default function CourseSelector({
   date,
   subject,
@@ -9,8 +11,9 @@ export default function CourseSelector({
   subject: string;
   subjects: { id: number; name: string }[];
 }) {
+  const [applying, setApplying] = useState(false);
   return (
-    <form method="get" className="course-toolbar" onChange={(event) => event.currentTarget.requestSubmit()}>
+    <form method="get" className={`course-toolbar ${applying ? "is-applying" : ""}`} onChange={(event) => { setApplying(true); event.currentTarget.requestSubmit(); }}>
       <div className="date-field">
         <label htmlFor="date">日期</label>
         <input id="date" type="date" name="date" className="form-control" defaultValue={date} />
@@ -26,6 +29,7 @@ export default function CourseSelector({
           ))}
         </div>
       </fieldset>
+      {applying && <span className="course-loading" role="status"><span className="spinner-border spinner-border-sm" />更新中…</span>}
     </form>
   );
 }

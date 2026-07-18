@@ -91,6 +91,21 @@ export async function deleteRecord(id: number): Promise<void> {
   await execute("DELETE FROM records WHERE id=$1", [id]);
 }
 
+export async function restoreRecord(
+  date: string,
+  subject: string,
+  seat: number,
+  status: RecordStatus,
+): Promise<void> {
+  if (!date || !subject || !Number.isInteger(seat) || seat < 1 || seat > SEAT_COUNT) return;
+  const now = new Date().toISOString();
+  await execute(
+    "INSERT INTO records (date,subject,seat,status,created_at,resolved_at) VALUES ($1,$2,$3,$4,$5,$6)" +
+      " ON CONFLICT (date,subject,seat) DO UPDATE SET status=excluded.status,resolved_at=excluded.resolved_at",
+    [date, subject, seat, status, now, status === "late" ? now : ""],
+  );
+}
+
 // ── Matrix aggregation (座號 × 科別，仍未交筆數) ─────────────────────────────────
 
 export interface MatrixRow {

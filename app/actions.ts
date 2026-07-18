@@ -62,4 +62,22 @@ export async function reopenRecord(formData: FormData) {
 export async function removeRecord(formData: FormData) {
   await db.deleteRecord(i(formData, "id"));
   revalidateAll();
+  const date = s(formData, "date");
+  const subject = s(formData, "subject");
+  const seat = i(formData, "seat");
+  const status = s(formData, "status") === "late" ? "late" : "open";
+  if (date && subject && seat) {
+    const params = new URLSearchParams({ date, subject, deletedSeat: String(seat), deletedStatus: status });
+    redirect(`/?${params.toString()}`);
+  }
+}
+
+export async function undoDeleteRecord(formData: FormData) {
+  const date = s(formData, "date");
+  const subject = s(formData, "subject");
+  const seat = i(formData, "seat");
+  const status = s(formData, "status") === "late" ? "late" : "open";
+  await db.restoreRecord(date, subject, seat, status);
+  revalidateAll();
+  redirect(`/?${new URLSearchParams({ date, subject }).toString()}`);
 }
