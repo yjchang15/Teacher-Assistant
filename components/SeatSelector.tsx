@@ -51,12 +51,9 @@ export default function SeatSelector({
   return (
     <div className="seat-form">
       <div className="d-flex justify-content-between align-items-center gap-2 mb-3">
-        <div>
-          <div className="fw-bold">點選未交作業的座號</div>
-          <div className="seat-status-keys" aria-label="座號狀態圖例">
-            <span className="seat-status-key is-open"><i className="bi bi-x-circle-fill" />未交</span>
-            <span className="seat-status-key is-resolved"><i className="bi bi-check-circle-fill" />已補交</span>
-          </div>
+        <div className="seat-status-keys" aria-label="座號狀態圖例">
+          <span className="seat-status-key is-open"><i className="bi bi-x-circle-fill" />未交</span>
+          <span className="seat-status-key is-resolved"><i className="bi bi-check-circle-fill" />已補交</span>
         </div>
         <span className="badge rounded-pill text-bg-primary fs-6">本次新增 {selected.length} 位</span>
       </div>
