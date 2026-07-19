@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import * as XLSX from "xlsx";
 import { getAssignmentMatrix, getClasses } from "@/lib/queries";
+import { requireAccount } from "@/lib/session";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -14,6 +15,7 @@ function todayInTaipei() {
 }
 
 export async function GET(req: NextRequest) {
+  const account = await requireAccount();
   const today = todayInTaipei();
   const startParam = req.nextUrl.searchParams.get("start") ?? "";
   const endParam = req.nextUrl.searchParams.get("end") ?? "";
@@ -24,7 +26,9 @@ export async function GET(req: NextRequest) {
   const start = rawStart <= rawEnd ? rawStart : rawEnd;
   const end = rawStart <= rawEnd ? rawEnd : rawStart;
   const classes = await getClasses();
-  const selectedClass = classes.find((item) => item.id === Number(req.nextUrl.searchParams.get("classId"))) ?? classes[0];
+  const selectedClass = account.role === "admin"
+    ? classes.find((item) => item.id === Number(req.nextUrl.searchParams.get("classId"))) ?? classes[0]
+    : classes.find((item) => item.id === account.class_id);
   const matrix = await getAssignmentMatrix(selectedClass?.id ?? 0, start, end, selectedClass?.seat_count ?? 32);
   const rows = matrix.rows.filter((row) => row.total > 0);
 

@@ -1,8 +1,9 @@
-import { DEFAULT_JUNIOR_HIGH_ASSIGNMENTS, getClasses, getAssignments, getMissingSeats } from "@/lib/queries";
-import { addClass, addAssignment, deleteAssignment, editAssignmentDescription, renameAssignment, toggleAssignmentSeat } from "@/app/actions";
+import { DEFAULT_JUNIOR_HIGH_ASSIGNMENTS, getClasses, getAssignments, getMissingSeats, getStudents } from "@/lib/queries";
+import { addAssignment, deleteAssignment, editAssignmentDescription, renameAssignment, toggleAssignmentSeat } from "@/app/actions";
 import AssignmentWorkspaceSelector, { RegistrationContextSelector } from "@/components/AssignmentWorkspaceSelector";
 import DoubleClickSeatGrid from "@/components/DoubleClickSeatGrid";
 import AssignmentDescriptionEditor from "@/components/AssignmentDescriptionEditor";
+import { requireAccount } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,12 @@ export default async function LogPage({
   searchParams: Promise<{ date?: string; classId?: string; assignmentId?: string }>;
 }) {
   const sp = await searchParams;
+  const account = await requireAccount();
   const today = todayInTaipei();
   const requestedDate = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : today;
   const date = requestedDate <= today ? requestedDate : today;
   const classes = await getClasses();
-  const requestedClassId = Number(sp.classId);
+  const requestedClassId = account.role === "admin" ? Number(sp.classId) : account.class_id;
   const selectedClass = classes.find((item) => item.id === requestedClassId);
   const classId = selectedClass?.id ?? 0;
   const assignments = classId ? await getAssignments(classId, date) : [];
@@ -28,6 +30,8 @@ export default async function LogPage({
   const selectedAssignment = assignments.find((item) => item.id === requestedAssignmentId);
   const assignmentId = selectedAssignment?.id ?? 0;
   const missingSeats = assignmentId ? await getMissingSeats(assignmentId) : [];
+  const students = classId ? (await getStudents(classId)).filter((student) => student.active) : [];
+  const visibleClasses = account.role === "admin" ? classes : selectedClass ? [selectedClass] : [];
   const assignmentContentLabel = selectedAssignment
     ? `${selectedAssignment.title}${DEFAULT_JUNIOR_HIGH_ASSIGNMENTS.includes(selectedAssignment.title as typeof DEFAULT_JUNIOR_HIGH_ASSIGNMENTS[number]) ? "科" : ""} 作業內容`
     : "";
@@ -37,13 +41,8 @@ export default async function LogPage({
       <header className="page-header">
         <div><h1>作業登記工作台</h1><p>選擇班級與作業項目，雙擊座號即可切換缺交狀態。</p></div>
         <div className="registration-context-bar">
-          <RegistrationContextSelector date={date} maxDate={today} classId={classId} classes={classes.map(({ id, name }) => ({ id, name }))} />
+          <RegistrationContextSelector date={date} maxDate={today} classId={classId} classes={visibleClasses.map(({ id, name }) => ({ id, name }))} />
         </div>
-        <details className="create-popover"><summary className="btn btn-outline-primary"><i className="bi bi-plus-lg me-2" />新增班級</summary><form action={addClass}>
-          <label htmlFor="class-name">班級名稱</label><input id="class-name" className="form-control" name="name" placeholder="例如：七年一班" required maxLength={30} />
-          <label htmlFor="seat-count">座號人數</label><input id="seat-count" className="form-control" name="seatCount" type="number" min="1" max="60" defaultValue="32" required />
-          <button className="btn btn-primary w-100" type="submit">建立班級</button>
-        </form></details>
       </header>
 
       <section className="workspace-panel">
@@ -68,7 +67,7 @@ export default async function LogPage({
         <div className="panel-header register-panel-header"><h2>{selectedAssignment ? <>缺交登記 <span>（雙擊座號切換缺交）</span></> : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
         {selectedAssignment ? <>
-          <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatCount={selectedClass?.seat_count ?? 32} missingSeats={missingSeats} action={toggleAssignmentSeat} />
+          <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatCount={selectedClass?.seat_count ?? 32} students={students.map(({seat,student_number,name})=>({seat,studentNumber:student_number,name}))} missingSeats={missingSeats} action={toggleAssignmentSeat} />
         </> : (
           <div className="subject-required-state"><i className="bi bi-hand-index-thumb" /><strong>{classId ? "請選擇或新增作業項目" : "請先選擇班級"}</strong><span>完成選擇後才會顯示座號。</span></div>
         )}

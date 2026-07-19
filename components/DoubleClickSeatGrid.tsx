@@ -5,11 +5,13 @@ import { useState } from "react";
 export default function DoubleClickSeatGrid({
   assignmentId,
   seatCount,
+  students,
   missingSeats,
   action,
 }: {
   assignmentId: number;
   seatCount: number;
+  students: { seat: number; studentNumber: string; name: string }[];
   missingSeats: number[];
   action: (formData: FormData) => Promise<void>;
 }) {
@@ -42,10 +44,11 @@ export default function DoubleClickSeatGrid({
 
   return (
     <div className="double-click-seat-grid" role="group" aria-label="學生座號">
-      {Array.from({ length: seatCount }, (_, index) => index + 1).map((seat) => {
+      {(students.length ? students : Array.from({ length: seatCount }, (_, index) => ({seat:index+1,studentNumber:"",name:""}))).map((student) => {
+        const seat=student.seat;
         const isMissing = missing.has(seat);
         return <button key={seat} type="button" className={`double-click-seat ${isMissing ? "is-missing" : ""}`} onDoubleClick={() => toggle(seat)} disabled={pending === seat} title="點兩下切換缺交狀態">
-          <strong>{seat}</strong><span>{isMissing ? "缺交" : "有交"}</span>
+          <strong>{seat}</strong>{student.studentNumber&&<small>{student.studentNumber}</small>}<span>{isMissing ? "缺交" : "有交"}</span>
         </button>;
       })}
     </div>

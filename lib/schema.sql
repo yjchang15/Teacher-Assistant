@@ -60,3 +60,30 @@ CREATE TABLE IF NOT EXISTS assignment_records (
 );
 
 CREATE INDEX IF NOT EXISTS assignments_class_date ON assignments (class_id, date);
+
+CREATE TABLE IF NOT EXISTS accounts (
+    id                   bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code                 TEXT NOT NULL UNIQUE,
+    display_name         TEXT NOT NULL,
+    role                 TEXT NOT NULL DEFAULT 'class',
+    class_id             bigint UNIQUE REFERENCES classes(id) ON DELETE SET NULL,
+    password_hash        TEXT NOT NULL,
+    must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
+    active               BOOLEAN NOT NULL DEFAULT TRUE,
+    last_login_at        TEXT DEFAULT '',
+    created_at           TEXT DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS students (
+    id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    class_id       bigint NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    seat           INTEGER NOT NULL,
+    student_number TEXT NOT NULL,
+    name           TEXT DEFAULT '',
+    active         BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at     TEXT DEFAULT '',
+    UNIQUE(class_id, seat),
+    UNIQUE(class_id, student_number)
+);
+
+CREATE INDEX IF NOT EXISTS students_class_active ON students(class_id, active);

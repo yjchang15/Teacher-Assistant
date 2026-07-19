@@ -1,23 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_ENABLED, AUTH_COOKIE, sessionToken } from "@/lib/auth";
+import { AUTH_COOKIE, verifySessionToken } from "@/lib/auth";
 
-// Only the teacher back-office (/admin) is gated. The 小老師 登記頁 and /login
-// stay public. When APP_PASSWORD is unset, auth is off and everything is open.
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (!pathname.startsWith("/admin")) return NextResponse.next();
-  if (!AUTH_ENABLED) return NextResponse.next();
-
-  const cookie = req.cookies.get(AUTH_COOKIE)?.value;
-  const token = await sessionToken();
-  if (cookie === token) return NextResponse.next();
-
-  const url = req.nextUrl.clone();
-  url.pathname = "/login";
-  return NextResponse.redirect(url);
+  if (pathname === "/login") return NextResponse.next();
+  const session = await verifySessionToken(req.cookies.get(AUTH_COOKIE)?.value);
+  if (!session) return NextResponse.redirect(new URL("/login", req.url));
+  if (session.mustChange && pathname !== "/password") return NextResponse.redirect(new URL("/password", req.url));
+  if (pathname.startsWith("/admin/accounts") && session.role !== "admin") return NextResponse.redirect(new URL("/", req.url));
+  return NextResponse.next();
 }
-
-export const config = {
-  // Run on everything except Next internals and static assets.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
-};
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };

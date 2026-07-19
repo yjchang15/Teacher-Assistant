@@ -3,7 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { AUTH_COOKIE, credentialsValid, sessionToken } from "@/lib/auth";
+import { AUTH_COOKIE, createSessionToken, DEFAULT_CLASS_PASSWORD, passwordHash } from "@/lib/auth";
+import { requireAccount, requireAdmin } from "@/lib/session";
 import * as db from "@/lib/queries";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -28,17 +29,17 @@ function todayInTaipei() {
 export async function login(formData: FormData) {
   const username = s(formData, "username");
   const password = s(formData, "password");
-  if (!credentialsValid(username, password)) {
-    redirect("/login?error=1");
-  }
+  const account = await db.getAccountByCode(username);
+  if (!account?.active || account.password_hash !== await passwordHash(password)) redirect("/login?error=1");
+  await db.touchLogin(account.id);
   const c = await cookies();
-  c.set(AUTH_COOKIE, await sessionToken(), {
+  c.set(AUTH_COOKIE, await createSessionToken({ id: account.id, code: account.code, role: account.role, classId: account.class_id, mustChange: account.must_change_password }), {
     httpOnly: true,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
   });
-  redirect("/admin");
+  redirect(account.must_change_password ? "/password" : "/");
 }
 
 export async function logout() {
@@ -83,6 +84,27 @@ export async function removeRecord(formData: FormData) {
   }
 }
 
+export async function changePassword(formData: FormData) {
+  const account = await requireAccount(true);
+  const password = s(formData, "password");
+  const confirm = s(formData, "confirm");
+  if (password.length < 8 || password !== confirm) redirect("/password?error=1");
+  await db.updateAccountPassword(account.id, await passwordHash(password));
+  const c = await cookies();
+  c.set(AUTH_COOKIE, await createSessionToken({ id: account.id, code: account.code, role: account.role, classId: account.class_id, mustChange: false }), { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
+  redirect("/");
+}
+
+export async function addClassAccount(formData: FormData) {
+  await requireAdmin();
+  await db.createClassAccount(s(formData,"code"), s(formData,"name"), Math.min(60,Math.max(1,i(formData,"seatCount"))), await passwordHash(DEFAULT_CLASS_PASSWORD));
+  revalidateAll(); redirect("/admin/accounts");
+}
+export async function toggleClassAccount(formData: FormData) { await requireAdmin(); await db.setAccountActive(i(formData,"id"), s(formData,"active") === "true"); revalidateAll(); }
+export async function resetClassPassword(formData: FormData) { await requireAdmin(); await db.resetAccountPassword(i(formData,"id"), await passwordHash(DEFAULT_CLASS_PASSWORD)); revalidateAll(); }
+export async function upsertStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.saveStudent(classId,i(formData,"seat"),s(formData,"studentNumber"),s(formData,"name")); revalidateAll(); }
+export async function removeStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.deactivateStudent(i(formData,"id"),classId); revalidateAll(); }
+
 export async function undoDeleteRecord(formData: FormData) {
   const date = s(formData, "date");
   const subject = s(formData, "subject");
@@ -94,6 +116,7 @@ export async function undoDeleteRecord(formData: FormData) {
 }
 
 export async function addClass(formData: FormData) {
+  await requireAdmin();
   const name = s(formData, "name");
   const seatCount = i(formData, "seatCount");
   await db.createClass(name, seatCount);
@@ -102,7 +125,8 @@ export async function addClass(formData: FormData) {
 }
 
 export async function addAssignment(formData: FormData) {
-  const classId = i(formData, "classId");
+  const account = await requireAccount();
+  const classId = account.role === "admin" ? i(formData, "classId") : account.class_id ?? 0;
   const date = s(formData, "date");
   const title = s(formData, "title");
   const description = s(formData, "description");
@@ -112,15 +136,19 @@ export async function addAssignment(formData: FormData) {
 }
 
 export async function editAssignmentDescription(formData: FormData) {
+  const account = await requireAccount();
   const assignmentId = i(formData, "assignmentId");
+  if (account.role !== "admin" && await db.getAssignmentClassId(assignmentId) !== account.class_id) return;
   const description = s(formData, "description");
   await db.updateAssignmentDescription(assignmentId, description);
   revalidateAll();
 }
 
 export async function deleteAssignment(formData: FormData) {
+  const account = await requireAccount();
   const assignmentId = i(formData, "assignmentId");
-  const classId = i(formData, "classId");
+  const classId = account.role === "admin" ? i(formData, "classId") : account.class_id ?? 0;
+  if (await db.getAssignmentClassId(assignmentId) !== classId) return;
   const date = s(formData, "date");
   await db.deleteCustomAssignment(assignmentId);
   revalidateAll();
@@ -128,8 +156,10 @@ export async function deleteAssignment(formData: FormData) {
 }
 
 export async function renameAssignment(formData: FormData) {
+  const account = await requireAccount();
   const assignmentId = i(formData, "assignmentId");
-  const classId = i(formData, "classId");
+  const classId = account.role === "admin" ? i(formData, "classId") : account.class_id ?? 0;
+  if (await db.getAssignmentClassId(assignmentId) !== classId) return;
   const date = s(formData, "date");
   await db.renameCustomAssignment(assignmentId, s(formData, "title"));
   revalidateAll();
@@ -137,7 +167,9 @@ export async function renameAssignment(formData: FormData) {
 }
 
 export async function toggleAssignmentSeat(formData: FormData) {
+  const account = await requireAccount();
   const assignmentId = i(formData, "assignmentId");
+  if (account.role !== "admin" && await db.getAssignmentClassId(assignmentId) !== account.class_id) return;
   const seat = i(formData, "seat");
   await db.toggleMissingSeat(assignmentId, seat);
   revalidateAll();

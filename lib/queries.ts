@@ -18,6 +18,49 @@ export interface Assignment {
   description: string;
 }
 
+export interface Account { id: number; code: string; display_name: string; role: "admin" | "class"; class_id: number | null; password_hash: string; must_change_password: boolean; active: boolean; last_login_at: string; }
+export interface Student { id: number; class_id: number; seat: number; student_number: string; name: string; active: boolean; }
+
+export async function getAccountByCode(code: string): Promise<Account | null> {
+  const rows = await query<Account>("SELECT * FROM accounts WHERE lower(code)=lower($1) LIMIT 1", [code]);
+  return rows[0] ? num(rows[0], ["id", "class_id"]) : null;
+}
+export async function getAccountById(id: number): Promise<Account | null> {
+  const rows = await query<Account>("SELECT * FROM accounts WHERE id=$1 LIMIT 1", [id]);
+  return rows[0] ? num(rows[0], ["id", "class_id"]) : null;
+}
+export async function listAccounts(): Promise<Account[]> {
+  return (await query<Account>("SELECT * FROM accounts ORDER BY role DESC,code")).map((r) => num(r, ["id", "class_id"]));
+}
+export async function touchLogin(id: number) { await execute("UPDATE accounts SET last_login_at=$1 WHERE id=$2", [new Date().toISOString(), id]); }
+export async function updateAccountPassword(id: number, hash: string) { await execute("UPDATE accounts SET password_hash=$1,must_change_password=FALSE WHERE id=$2", [hash, id]); }
+export async function createClassAccount(code: string, name: string, seatCount: number, hash: string) {
+  if (!code || !name) return;
+  await tx([
+    ["INSERT INTO classes(name,seat_count,created_at) VALUES($1,$2,$3) ON CONFLICT(name) DO NOTHING", [name, seatCount, new Date().toISOString()]],
+    ["INSERT INTO accounts(code,display_name,role,class_id,password_hash,must_change_password,active,created_at) SELECT $1,$2,'class',id,$3,TRUE,TRUE,$4 FROM classes WHERE name=$2 ON CONFLICT(code) DO NOTHING", [code, name, hash, new Date().toISOString()]],
+  ]);
+}
+export async function setAccountActive(id: number, active: boolean) { await execute("UPDATE accounts SET active=$1 WHERE id=$2 AND role='class'", [active, id]); }
+export async function resetAccountPassword(id: number, hash: string) { await execute("UPDATE accounts SET password_hash=$1,must_change_password=TRUE WHERE id=$2 AND role='class'", [hash, id]); }
+
+export async function getStudents(classId: number): Promise<Student[]> {
+  return (await query<Student>("SELECT * FROM students WHERE class_id=$1 ORDER BY seat", [classId])).map((r) => num(r, ["id", "class_id", "seat"]));
+}
+export async function saveStudent(classId: number, seat: number, studentNumber: string, name: string) {
+  if (!classId || seat < 1 || seat > 60 || !studentNumber) return;
+  await execute("INSERT INTO students(class_id,seat,student_number,name,active,created_at) VALUES($1,$2,$3,$4,TRUE,$5) ON CONFLICT(class_id,seat) DO UPDATE SET student_number=excluded.student_number,name=excluded.name,active=TRUE", [classId, seat, studentNumber, name, new Date().toISOString()]);
+}
+export async function deactivateStudent(id: number, classId: number) { await execute("UPDATE students SET active=FALSE WHERE id=$1 AND class_id=$2", [id, classId]); }
+
+export interface MissingDetail { seat: number; student_number: string; student_name: string; date: string; title: string; description: string; }
+export async function getMissingDetails(classId: number, start: string, end: string): Promise<MissingDetail[]> {
+  return (await query<MissingDetail>(`SELECT ar.seat,COALESCE(s.student_number,'') student_number,COALESCE(s.name,'') student_name,a.date,a.title,a.description
+    FROM assignment_records ar JOIN assignments a ON a.id=ar.assignment_id
+    LEFT JOIN students s ON s.class_id=a.class_id AND s.seat=ar.seat AND s.active=TRUE
+    WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3 ORDER BY ar.seat,a.date,a.id`, [classId, start, end])).map((r) => num(r, ["seat"]));
+}
+
 export const DEFAULT_JUNIOR_HIGH_ASSIGNMENTS = ["國文", "英文", "數學", "自然", "地理", "歷史", "公民"] as const;
 
 export async function getClasses(): Promise<ClassRoom[]> {
@@ -90,6 +133,7 @@ export async function getMissingSeats(assignmentId: number): Promise<number[]> {
   );
   return rows.map((row) => Number(row.seat));
 }
+export async function getAssignmentClassId(assignmentId: number): Promise<number> { return Number(await scalar<number>("SELECT COALESCE(MAX(class_id),0) FROM assignments WHERE id=$1", [assignmentId])); }
 
 export async function toggleMissingSeat(assignmentId: number, seat: number): Promise<void> {
   if (!assignmentId || !Number.isInteger(seat) || seat < 1 || seat > 60) return;

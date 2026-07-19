@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { Roboto, Roboto_Mono, Noto_Sans_TC } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
-import { AUTH_COOKIE, AUTH_ENABLED, sessionToken } from "@/lib/auth";
+import { currentAccount } from "@/lib/session";
 
 // Google's UI type stack: Roboto (Latin) + Noto Sans TC (中文). Both variable.
 const roboto = Roboto({ subsets: ["latin"], display: "swap", variable: "--font-roboto" });
@@ -31,7 +31,7 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get("theme")?.value;
   const theme = themeCookie === "dark" || themeCookie === "light" ? themeCookie : undefined;
-  const isLoggedIn = AUTH_ENABLED && cookieStore.get(AUTH_COOKIE)?.value === await sessionToken();
+  const account = await currentAccount();
   return (
     <html lang="zh-TW" suppressHydrationWarning data-bs-theme={theme} style={{ colorScheme: theme }} className={`${roboto.variable} ${robotoMono.variable} ${notoTC.variable}`}>
       <head>
@@ -46,7 +46,7 @@ export default async function RootLayout({
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
       </head>
       <body>
-        <Nav authEnabled={AUTH_ENABLED} isLoggedIn={isLoggedIn} />
+        <Nav account={account ? { code: account.code, displayName: account.display_name, role: account.role } : null} />
         <div className="app-content">
           {children}
         </div>
