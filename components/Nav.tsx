@@ -2,7 +2,7 @@ import Link from "next/link";
 import { logout } from "@/app/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 
-export default function Nav({ isLoggedIn }: { isLoggedIn: boolean }) {
+export default function Nav({ authEnabled, isLoggedIn }: { authEnabled: boolean; isLoggedIn: boolean }) {
   return (
     <aside className="app-sidebar">
       <Link className="sidebar-brand" href="/">
@@ -21,6 +21,7 @@ export default function Nav({ isLoggedIn }: { isLoggedIn: boolean }) {
           <span className="small text-body-secondary">顯示模式</span><ThemeToggle />
         </div>
         {isLoggedIn && <form action={logout}><button className="btn btn-outline-secondary w-100 mt-3" type="submit"><i className="bi bi-box-arrow-right me-2" />登出</button></form>}
+        {authEnabled && !isLoggedIn && <Link className="btn btn-primary w-100 mt-3" href="/login"><i className="bi bi-box-arrow-in-right me-2" />登入</Link>}
       </div>
     </aside>
   );
