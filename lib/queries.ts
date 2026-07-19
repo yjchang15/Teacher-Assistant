@@ -80,7 +80,7 @@ export async function getMissingDetails(classId: number, start: string, end: str
     WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3 ORDER BY ar.seat,a.date,a.id`, [classId, start, end])).map((r) => num(r, ["seat"]));
 }
 
-export const DEFAULT_JUNIOR_HIGH_ASSIGNMENTS = ["國文", "英文", "數學", "自然", "地理", "歷史", "公民"] as const;
+export const DEFAULT_JUNIOR_HIGH_ASSIGNMENTS = ["國文1", "英文1", "數學1", "理化1", "地理1", "歷史1", "公民1"] as const;
 
 // A class carries no user-facing name; its label is the linked account's
 // display_name (falls back when a class has no active account row).
@@ -112,8 +112,8 @@ export async function getAssignments(classId: number, date: string): Promise<Ass
   const rows = await query<Assignment>(
     `SELECT id,class_id,date,title,description FROM assignments WHERE class_id=$1 AND date=$2
      ORDER BY CASE title
-       WHEN '國文' THEN 1 WHEN '英文' THEN 2 WHEN '數學' THEN 3 WHEN '自然' THEN 4
-       WHEN '地理' THEN 5 WHEN '歷史' THEN 6 WHEN '公民' THEN 7 ELSE 99 END, id`,
+       WHEN '國文1' THEN 1 WHEN '英文1' THEN 2 WHEN '數學1' THEN 3 WHEN '理化1' THEN 4
+       WHEN '地理1' THEN 5 WHEN '歷史1' THEN 6 WHEN '公民1' THEN 7 ELSE 99 END, id`,
     [classId, date],
   );
   return rows.map((row) => num(row, ["id", "class_id"]));

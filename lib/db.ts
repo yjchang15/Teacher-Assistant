@@ -171,7 +171,7 @@ export async function tx(statements: [string, unknown[]][]): Promise<void> {
 // Bump whenever schema.sql or the ALTER migrations below change, so existing
 // databases re-run the full init once. Between bumps, a cold instance skips the
 // schema round trips after a single cheap marker check.
-const SCHEMA_VERSION = "2026-07-19-nameless-class-no-student-number";
+const SCHEMA_VERSION = "2026-07-19-numbered-default-assignments";
 
 async function runInit(): Promise<void> {
   const be = await getBackend();
@@ -196,6 +196,30 @@ async function runInit(): Promise<void> {
   // Idempotent migration: 學號 is no longer used — drop the column (this also
   // drops its UNIQUE constraint). Safe no-op once the column is gone.
   await be.query("ALTER TABLE students DROP COLUMN IF EXISTS student_number", []);
+
+  // Rename the original unnumbered defaults without losing missing records.
+  // If a numbered target already exists, merge its records before removing the
+  // old assignment; otherwise rename the old row in place.
+  const assignmentRenames = [
+    ["國文", "國文1"], ["英文", "英文1"], ["數學", "數學1"], ["自然", "理化1"],
+    ["地理", "地理1"], ["歷史", "歷史1"], ["公民", "公民1"],
+  ];
+  for (const [oldTitle, newTitle] of assignmentRenames) {
+    await be.query(
+      "INSERT INTO assignment_records(assignment_id,seat,created_at)" +
+        " SELECT target.id,ar.seat,ar.created_at FROM assignments old" +
+        " JOIN assignments target ON target.class_id=old.class_id AND target.date=old.date AND target.title=$2" +
+        " JOIN assignment_records ar ON ar.assignment_id=old.id WHERE old.title=$1" +
+        " ON CONFLICT(assignment_id,seat) DO NOTHING",
+      [oldTitle, newTitle],
+    );
+    await be.query(
+      "DELETE FROM assignments old USING assignments target" +
+        " WHERE old.title=$1 AND target.title=$2 AND target.class_id=old.class_id AND target.date=old.date AND target.id<>old.id",
+      [oldTitle, newTitle],
+    );
+    await be.query("UPDATE assignments SET title=$2 WHERE title=$1", [oldTitle, newTitle]);
+  }
 
   // Bootstrap only the admin account. No 預設班級 / default class account is
   // seeded — the admin creates class accounts on demand (each makes its class).
