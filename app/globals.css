@@ -123,9 +123,9 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .workspace-options input:checked + label { border-color: var(--bs-primary); color: white; background: var(--bs-primary); }
 .workspace-options input:checked + label i { display: inline; }
 .assignment-option { position: relative; }
-.assignment-delete-form, .assignment-edit-form { position: absolute; top: 3px; }
-.assignment-delete-form { right: 3px; }
-.assignment-edit-form { right: 26px; }
+.assignment-delete-form, .assignment-edit-form { position: absolute; right: 3px; }
+.assignment-edit-form { top: 1px; }
+.assignment-delete-form { bottom: 1px; }
 .assignment-delete-form button, .assignment-edit-form button { display: grid; place-items: center; width: 21px; height: 21px; padding: 0; border: 0; border-radius: 5px; color: var(--bs-secondary-color); background: transparent; font-size: .68rem; opacity: 0; transition: opacity .12s ease, color .12s ease, background-color .12s ease; }
 .assignment-option:hover .assignment-delete-form button, .assignment-option:hover .assignment-edit-form button, .assignment-delete-form button:focus-visible, .assignment-edit-form button:focus-visible { opacity: 1; }
 .assignment-delete-form button:hover { color: var(--bs-danger); background: rgba(var(--bs-danger-rgb), .1); }
