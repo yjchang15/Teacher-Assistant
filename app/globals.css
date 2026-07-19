@@ -107,11 +107,10 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .create-popover > summary { list-style: none; cursor: pointer; }
 .create-popover > summary::-webkit-details-marker { display: none; }
 .create-popover > form { position: absolute; right: 0; top: 48px; z-index: 40; display: grid; gap: 9px; width: 280px; padding: 16px; border: 1px solid var(--bs-border-color); border-radius: 12px; background: var(--bs-body-bg); box-shadow: 0 16px 40px rgba(0,0,0,.16); }
-.create-popover label, .add-assignment-panel label { margin-bottom: 4px; color: var(--bs-secondary-color); font-size: .72rem; font-weight: 800; }
-.assignment-workspace-selector { position: relative; display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 15px 18px; align-items: end; }
+.create-popover label, .assignment-create-popover label { margin-bottom: 5px; color: var(--bs-secondary-color); font-size: .72rem; font-weight: 800; }
+.assignment-workspace-selector { position: relative; display: grid; grid-template-columns: 180px minmax(180px, 260px) minmax(360px, 1fr); gap: 18px; align-items: end; }
 .assignment-workspace-selector fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .assignment-workspace-selector legend, .workspace-date-field label { margin-bottom: 6px; color: var(--bs-secondary-color); font-size: .75rem; font-weight: 800; }
-.assignment-options-field { grid-column: 1 / -1; }
 .workspace-options { display: flex; flex-wrap: wrap; gap: 7px; }
 .workspace-options input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .workspace-options label { display: inline-flex; align-items: center; gap: 6px; min-width: 110px; height: 42px; justify-content: center; padding: 0 14px; border: 1px solid var(--bs-border-color); border-radius: 9px; font-size: .92rem; font-weight: 800; cursor: pointer; }
@@ -119,11 +118,17 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .workspace-options input:checked + label { border-color: var(--bs-primary); color: white; background: var(--bs-primary); }
 .workspace-options input:checked + label i { display: inline; }
 .assignment-workspace-selector.is-applying { opacity: .65; pointer-events: none; }
-.add-assignment-panel { margin-top: 14px; border: 1px dashed var(--bs-border-color); border-radius: 10px; }
-.add-assignment-panel > summary { padding: 10px 13px; color: var(--bs-primary); font-size: .82rem; font-weight: 800; cursor: pointer; }
-.add-assignment-panel > form { display: flex; align-items: end; gap: 12px; padding: 0 13px 13px; }
-.add-assignment-panel > form > div:first-of-type { width: 240px; }
-.add-assignment-panel textarea { resize: vertical; min-height: 62px; }
+.assignment-create-popover { position: relative; }
+.assignment-create-popover > summary { min-width: 138px; list-style: none; cursor: pointer; }
+.assignment-create-popover > summary::-webkit-details-marker { display: none; }
+.assignment-create-popover[open] > summary { color: white; background: var(--bs-primary); }
+.assignment-create-popover > form { position: absolute; right: 0; top: 44px; z-index: 45; display: grid; gap: 13px; width: 520px; padding: 18px; border: 1px solid var(--bs-border-color); border-radius: 13px; background: var(--bs-body-bg); box-shadow: 0 18px 45px rgba(20, 30, 50, .18); }
+.assignment-create-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding-bottom: 11px; border-bottom: 1px solid var(--bs-border-color); }
+.assignment-create-heading strong { font-size: .95rem; }
+.assignment-create-heading span { color: var(--bs-secondary-color); font-size: .75rem; }
+.assignment-create-popover label span { font-weight: 500; }
+.assignment-create-popover textarea { min-height: 82px; resize: vertical; }
+.assignment-create-actions { display: flex; justify-content: flex-end; }
 .assignment-description { display: flex; gap: 12px; margin-bottom: 12px; padding: 13px 15px; border-left: 4px solid var(--bs-primary); border-radius: 8px; background: var(--bs-tertiary-bg); }
 .assignment-description > i { color: var(--bs-primary); font-size: 1.15rem; }
 .assignment-description strong { font-size: .78rem; }

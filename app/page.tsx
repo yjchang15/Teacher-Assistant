@@ -40,18 +40,20 @@ export default async function LogPage({
       </header>
 
       <section className="workspace-panel">
-        <div className="panel-header course-panel-header"><div><span className="panel-kicker">01 / 登記範圍</span><h2>選擇日期、班級與作業項目</h2></div></div>
+        <div className="panel-header course-panel-header">
+          <div><span className="panel-kicker">01 / 登記範圍</span><h2>選擇日期、班級與作業項目</h2></div>
+          {classId > 0 && <details className="assignment-create-popover">
+            <summary className="btn btn-outline-primary btn-sm"><i className="bi bi-plus-lg me-2" />新增作業項目</summary>
+            <form action={addAssignment}>
+              <div className="assignment-create-heading"><strong>新增作業項目</strong><span>{selectedClass?.name} · {date.replaceAll("-", "/")}</span></div>
+              <input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
+              <div><label htmlFor="assignment-title">項目名稱</label><input id="assignment-title" className="form-control" name="title" placeholder="例如：健康檢查回條" required maxLength={50} /></div>
+              <div><label htmlFor="assignment-description">作業內容說明 <span>（選填）</span></label><textarea id="assignment-description" className="form-control" name="description" placeholder="例如：請家長簽名，明天早上交回" rows={3} maxLength={500} /></div>
+              <div className="assignment-create-actions"><button className="btn btn-primary" type="submit"><i className="bi bi-plus-lg me-2" />建立項目</button></div>
+            </form>
+          </details>}
+        </div>
         <AssignmentWorkspaceSelector date={date} maxDate={today} classId={classId} assignmentId={assignmentId} classes={classes.map(({ id, name }) => ({ id, name }))} assignments={assignments.map(({ id, title }) => ({ id, title }))} />
-
-        {classId > 0 && <details className="add-assignment-panel">
-          <summary><i className="bi bi-plus-circle me-2" />新增今天的作業項目</summary>
-          <form action={addAssignment}>
-            <input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
-            <div><label htmlFor="assignment-title">作業項目</label><input id="assignment-title" className="form-control" name="title" placeholder="例如：健康檢查回條" required maxLength={50} /></div>
-            <div className="flex-grow-1"><label htmlFor="assignment-description">作業內容說明</label><textarea id="assignment-description" className="form-control" name="description" placeholder="例如：請家長簽名，明天早上交回" rows={2} maxLength={500} /></div>
-            <button className="btn btn-primary" type="submit">新增項目</button>
-          </form>
-        </details>}
 
         <div className="panel-divider" />
         <div className="panel-header"><div><span className="panel-kicker">02 / 缺交登記</span><h2>{selectedAssignment ? selectedAssignment.title : "請先選擇作業項目"}</h2></div>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
