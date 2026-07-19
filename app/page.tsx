@@ -1,4 +1,4 @@
-import { getClasses, getAssignments, getMissingSeats } from "@/lib/queries";
+import { DEFAULT_JUNIOR_HIGH_ASSIGNMENTS, getClasses, getAssignments, getMissingSeats } from "@/lib/queries";
 import { addClass, addAssignment, editAssignmentDescription, toggleAssignmentSeat } from "@/app/actions";
 import AssignmentWorkspaceSelector from "@/components/AssignmentWorkspaceSelector";
 import DoubleClickSeatGrid from "@/components/DoubleClickSeatGrid";
@@ -27,6 +27,9 @@ export default async function LogPage({
   const selectedAssignment = assignments.find((item) => item.id === requestedAssignmentId);
   const assignmentId = selectedAssignment?.id ?? 0;
   const missingSeats = assignmentId ? await getMissingSeats(assignmentId) : [];
+  const assignmentContentLabel = selectedAssignment
+    ? `${selectedAssignment.title}${DEFAULT_JUNIOR_HIGH_ASSIGNMENTS.includes(selectedAssignment.title as typeof DEFAULT_JUNIOR_HIGH_ASSIGNMENTS[number]) ? "科" : ""} 作業內容`
+    : "";
 
   return (
     <main className="desktop-dashboard">
@@ -56,12 +59,12 @@ export default async function LogPage({
         <AssignmentWorkspaceSelector date={date} maxDate={today} classId={classId} assignmentId={assignmentId} classes={classes.map(({ id, name }) => ({ id, name }))} assignments={assignments.map(({ id, title }) => ({ id, title }))} />
 
         <div className="panel-divider" />
-        <div className="panel-header"><div><span className="panel-kicker">02 / 缺交登記</span><h2>{selectedAssignment ? selectedAssignment.title : "請先選擇作業項目"}</h2></div>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
+        <div className="panel-header"><div><span className="panel-kicker">02 / 缺交登記</span><h2>{selectedAssignment ? "缺交座號登記" : "請先選擇作業項目"}</h2></div>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
         {selectedAssignment ? <>
           <div className="assignment-description">
             <i className="bi bi-card-text" />
-            <div className="assignment-description-copy"><strong>作業內容</strong><p>{selectedAssignment.description || "尚未填寫說明"}</p></div>
+            <div className="assignment-description-copy"><strong>{assignmentContentLabel}</strong><p>{selectedAssignment.description || "尚未填寫說明"}</p></div>
             <details className="assignment-edit-popover">
               <summary className="btn btn-sm btn-outline-secondary"><i className="bi bi-pencil me-1" />編輯</summary>
               <form action={editAssignmentDescription}>
