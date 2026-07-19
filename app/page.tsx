@@ -44,7 +44,7 @@ export default async function LogPage({
 
       <section className="workspace-panel">
         <div className="panel-header course-panel-header">
-          <h2>登記範圍</h2>
+          <h2>作業項目</h2>
           {classId > 0 && <details className="assignment-create-popover">
             <summary className="btn btn-outline-primary btn-sm"><i className="bi bi-plus-lg me-2" />新增項目</summary>
             <form action={addAssignment}>
