@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getMatrix } from "@/lib/queries";
+import { getAssignmentMatrix, getClasses } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "未交作業統計 - Teacher Assistant" };
@@ -18,7 +18,7 @@ function todayInTaipei() {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ start?: string; end?: string; sort?: string }>;
+  searchParams: Promise<{ start?: string; end?: string; sort?: string; classId?: string }>;
 }) {
   const sp = await searchParams;
   const today = todayInTaipei();
@@ -29,13 +29,16 @@ export default async function AdminPage({
   const start = rawStart <= rawEnd ? rawStart : rawEnd;
   const end = rawStart <= rawEnd ? rawEnd : rawStart;
   const sortByTotal = sp.sort === "total";
-  const matrix = await getMatrix(start, end);
+  const classes = await getClasses();
+  const selectedClass = classes.find((item) => item.id === Number(sp.classId)) ?? classes[0];
+  const classId = selectedClass?.id ?? 0;
+  const matrix = await getAssignmentMatrix(classId, start, end, selectedClass?.seat_count ?? 32);
   const nonEmptyRows = matrix.rows.filter((row) => row.total > 0);
   const rows = sortByTotal
     ? [...nonEmptyRows].sort((a, b) => b.total - a.total || a.seat - b.seat)
     : nonEmptyRows;
   const query = (extra: Record<string, string>) =>
-    "?" + new URLSearchParams({ start, end, ...(sortByTotal ? { sort: "total" } : {}), ...extra }).toString();
+    "?" + new URLSearchParams({ classId: String(classId), start, end, ...(sortByTotal ? { sort: "total" } : {}), ...extra }).toString();
 
   return (
     <main>
@@ -52,6 +55,7 @@ export default async function AdminPage({
       <section className="card workflow-card mb-3">
         <div className="card-body d-flex align-items-end gap-3">
           <form method="get" className="admin-date-range d-flex align-items-end gap-3">
+            <div><label className="form-label fw-semibold small" htmlFor="classId">班級</label><select id="classId" className="form-select" name="classId" defaultValue={classId}>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
             <div>
               <label className="form-label fw-semibold small" htmlFor="start">起始日期</label>
               <input id="start" className="form-control" type="date" name="start" defaultValue={start} max={today} />

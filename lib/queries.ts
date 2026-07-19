@@ -4,6 +4,69 @@ import { query, execute, scalar, tx } from "./db";
 // Single class: seats 1..SEAT_COUNT.
 export const SEAT_COUNT = 32;
 
+export interface ClassRoom {
+  id: number;
+  name: string;
+  seat_count: number;
+}
+
+export interface Assignment {
+  id: number;
+  class_id: number;
+  date: string;
+  title: string;
+  description: string;
+}
+
+export async function getClasses(): Promise<ClassRoom[]> {
+  const rows = await query<ClassRoom>("SELECT id,name,seat_count FROM classes ORDER BY id");
+  return rows.map((row) => num(row, ["id", "seat_count"]));
+}
+
+export async function createClass(name: string, seatCount = SEAT_COUNT): Promise<void> {
+  if (!name) return;
+  const count = Math.min(60, Math.max(1, Math.trunc(seatCount) || SEAT_COUNT));
+  await execute(
+    "INSERT INTO classes (name,seat_count,created_at) VALUES ($1,$2,$3) ON CONFLICT(name) DO NOTHING",
+    [name, count, new Date().toISOString()],
+  );
+}
+
+export async function getAssignments(classId: number, date: string): Promise<Assignment[]> {
+  const rows = await query<Assignment>(
+    "SELECT id,class_id,date,title,description FROM assignments WHERE class_id=$1 AND date=$2 ORDER BY id",
+    [classId, date],
+  );
+  return rows.map((row) => num(row, ["id", "class_id"]));
+}
+
+export async function createAssignment(classId: number, date: string, title: string, description: string): Promise<void> {
+  if (!classId || !date || !title) return;
+  await execute(
+    "INSERT INTO assignments (class_id,date,title,description,created_at) VALUES ($1,$2,$3,$4,$5)" +
+      " ON CONFLICT(class_id,date,title) DO UPDATE SET description=excluded.description",
+    [classId, date, title, description, new Date().toISOString()],
+  );
+}
+
+export async function getMissingSeats(assignmentId: number): Promise<number[]> {
+  const rows = await query<{ seat: number }>(
+    "SELECT seat FROM assignment_records WHERE assignment_id=$1 ORDER BY seat",
+    [assignmentId],
+  );
+  return rows.map((row) => Number(row.seat));
+}
+
+export async function toggleMissingSeat(assignmentId: number, seat: number): Promise<void> {
+  if (!assignmentId || !Number.isInteger(seat) || seat < 1 || seat > 60) return;
+  await execute(
+    "WITH deleted AS (DELETE FROM assignment_records WHERE assignment_id=$1 AND seat=$2 RETURNING id)" +
+      " INSERT INTO assignment_records (assignment_id,seat,created_at)" +
+      " SELECT $1,$2,$3 WHERE NOT EXISTS (SELECT 1 FROM deleted) ON CONFLICT DO NOTHING",
+    [assignmentId, seat, new Date().toISOString()],
+  );
+}
+
 // Coerce DB numerics (some drivers return DOUBLE PRECISION / bigint as strings).
 function num<T>(row: T, keys: (keyof T)[]): T {
   const r = row as Record<string, unknown>;
@@ -154,5 +217,39 @@ export async function getMatrix(start: string, end: string): Promise<Matrix> {
     rows.push({ seat, counts, total });
   }
 
+  return { subjects, rows, colTotals, grandTotal };
+}
+
+export async function getAssignmentMatrix(classId: number, start: string, end: string, seatCount: number): Promise<Matrix> {
+  if (!classId) return { subjects: [], rows: [], colTotals: {}, grandTotal: 0 };
+  const params: unknown[] = [classId];
+  let dateWhere = "class_id=$1";
+  if (start) { params.push(start); dateWhere += ` AND date >= $${params.length}`; }
+  if (end) { params.push(end); dateWhere += ` AND date <= $${params.length}`; }
+  const titleRows = await query<{ title: string }>(
+    `SELECT DISTINCT title FROM assignments WHERE ${dateWhere} ORDER BY title`,
+    params,
+  );
+  const subjects = titleRows.map((row) => row.title);
+  const raw = (await query<{ seat: number; title: string; n: number }>(
+    `SELECT ar.seat,a.title,COUNT(*) AS n FROM assignment_records ar JOIN assignments a ON a.id=ar.assignment_id WHERE ${dateWhere.replaceAll("date", "a.date").replace("class_id", "a.class_id")} GROUP BY ar.seat,a.title`,
+    params,
+  )).map((row) => num(row, ["seat", "n"]));
+  const rows: MatrixRow[] = [];
+  const colTotals: Record<string, number> = Object.fromEntries(subjects.map((title) => [title, 0]));
+  let grandTotal = 0;
+  for (let seat = 1; seat <= seatCount; seat++) {
+    const counts: Record<string, number> = Object.fromEntries(subjects.map((title) => [title, 0]));
+    let total = 0;
+    for (const row of raw) {
+      if (row.seat === seat && row.title in counts) {
+        counts[row.title] = row.n;
+        colTotals[row.title] += row.n;
+        total += row.n;
+      }
+    }
+    grandTotal += total;
+    rows.push({ seat, counts, total });
+  }
   return { subjects, rows, colTotals, grandTotal };
 }

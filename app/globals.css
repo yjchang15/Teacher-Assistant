@@ -103,6 +103,41 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .subject-required-state strong { color: var(--bs-body-color); font-size: 1.05rem; }
 .subject-required-state span { font-size: .8rem; }
 
+.create-popover { position: relative; }
+.create-popover > summary { list-style: none; cursor: pointer; }
+.create-popover > summary::-webkit-details-marker { display: none; }
+.create-popover > form { position: absolute; right: 0; top: 48px; z-index: 40; display: grid; gap: 9px; width: 280px; padding: 16px; border: 1px solid var(--bs-border-color); border-radius: 12px; background: var(--bs-body-bg); box-shadow: 0 16px 40px rgba(0,0,0,.16); }
+.create-popover label, .add-assignment-panel label { margin-bottom: 4px; color: var(--bs-secondary-color); font-size: .72rem; font-weight: 800; }
+.assignment-workspace-selector { position: relative; display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 15px 18px; align-items: end; }
+.assignment-workspace-selector fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.assignment-workspace-selector legend, .workspace-date-field label { margin-bottom: 6px; color: var(--bs-secondary-color); font-size: .75rem; font-weight: 800; }
+.assignment-options-field { grid-column: 1 / -1; }
+.workspace-options { display: flex; flex-wrap: wrap; gap: 7px; }
+.workspace-options input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.workspace-options label { display: inline-flex; align-items: center; gap: 6px; min-width: 110px; height: 42px; justify-content: center; padding: 0 14px; border: 1px solid var(--bs-border-color); border-radius: 9px; font-size: .92rem; font-weight: 800; cursor: pointer; }
+.workspace-options label i { display: none; }
+.workspace-options input:checked + label { border-color: var(--bs-primary); color: white; background: var(--bs-primary); }
+.workspace-options input:checked + label i { display: inline; }
+.assignment-workspace-selector.is-applying { opacity: .65; pointer-events: none; }
+.add-assignment-panel { margin-top: 14px; border: 1px dashed var(--bs-border-color); border-radius: 10px; }
+.add-assignment-panel > summary { padding: 10px 13px; color: var(--bs-primary); font-size: .82rem; font-weight: 800; cursor: pointer; }
+.add-assignment-panel > form { display: flex; align-items: end; gap: 12px; padding: 0 13px 13px; }
+.add-assignment-panel > form > div:first-of-type { width: 240px; }
+.add-assignment-panel textarea { resize: vertical; min-height: 62px; }
+.assignment-description { display: flex; gap: 12px; margin-bottom: 12px; padding: 13px 15px; border-left: 4px solid var(--bs-primary); border-radius: 8px; background: var(--bs-tertiary-bg); }
+.assignment-description > i { color: var(--bs-primary); font-size: 1.15rem; }
+.assignment-description strong { font-size: .78rem; }
+.assignment-description p { margin: 3px 0 0; white-space: pre-wrap; color: var(--bs-secondary-color); font-size: .88rem; }
+.missing-count { padding: 5px 10px; border-radius: 99px; color: var(--bs-danger); background: rgba(var(--bs-danger-rgb),.1); font-size: .78rem; font-weight: 800; }
+.double-click-hint { margin-bottom: 10px; color: var(--bs-secondary-color); font-size: .75rem; }
+.double-click-seat-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 9px; user-select: none; }
+.double-click-seat { display: grid; place-items: center; grid-template-rows: 1fr auto; height: 78px; padding: 10px 5px 8px; border: 1px solid var(--bs-border-color); border-radius: 10px; color: var(--bs-body-color); background: var(--bs-body-bg); cursor: default; }
+.double-click-seat strong { font-size: 1.55rem; line-height: 1; }
+.double-click-seat span { color: var(--bs-success); font-size: .72rem; font-weight: 800; }
+.double-click-seat.is-missing { border-color: rgba(var(--bs-danger-rgb),.4); color: var(--bs-danger); background: rgba(var(--bs-danger-rgb),.11); }
+.double-click-seat.is-missing span { color: var(--bs-danger); }
+.double-click-seat:disabled { opacity: .6; }
+
 .count-pill { padding: 5px 10px; border-radius: 999px; color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .1); font-size: .75rem; font-weight: 800; }
 .record-scroll { display: grid; gap: 8px; max-height: calc(100vh - 190px); overflow-y: auto; padding-right: 3px; }
 .record-item { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--bs-border-color); border-radius: 10px; background: var(--bs-body-bg); }

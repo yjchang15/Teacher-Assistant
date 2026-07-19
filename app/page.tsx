@@ -1,61 +1,69 @@
-import { getSubjects, getDayRecords, SEAT_COUNT } from "@/lib/queries";
-import { logRecords, markLate, reopenRecord, removeRecord, undoDeleteRecord } from "@/app/actions";
-import SeatSelector from "@/components/SeatSelector";
-import CourseSelector from "@/components/CourseSelector";
+import { getClasses, getAssignments, getMissingSeats } from "@/lib/queries";
+import { addClass, addAssignment, toggleAssignmentSeat } from "@/app/actions";
+import AssignmentWorkspaceSelector from "@/components/AssignmentWorkspaceSelector";
+import DoubleClickSeatGrid from "@/components/DoubleClickSeatGrid";
 
 export const dynamic = "force-dynamic";
 
 function todayInTaipei() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Taipei",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
 
-export default async function LogPage({ searchParams }: { searchParams: Promise<{ date?: string; subject?: string; deletedSeat?: string; deletedStatus?: string }> }) {
+export default async function LogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string; classId?: string; assignmentId?: string }>;
+}) {
   const sp = await searchParams;
   const today = todayInTaipei();
-  const subjects = await getSubjects();
   const requestedDate = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : today;
   const date = requestedDate <= today ? requestedDate : today;
-  const subject = subjects.some((item) => item.name === sp.subject) ? sp.subject! : "";
-  const records = subject ? await getDayRecords(date, subject) : [];
-  const openCount = records.filter((record) => record.status === "open").length;
-  const resolvedCount = records.length - openCount;
+  const classes = await getClasses();
+  const requestedClassId = Number(sp.classId);
+  const selectedClass = classes.find((item) => item.id === requestedClassId);
+  const classId = selectedClass?.id ?? 0;
+  const assignments = classId ? await getAssignments(classId, date) : [];
+  const requestedAssignmentId = Number(sp.assignmentId);
+  const selectedAssignment = assignments.find((item) => item.id === requestedAssignmentId);
+  const assignmentId = selectedAssignment?.id ?? 0;
+  const missingSeats = assignmentId ? await getMissingSeats(assignmentId) : [];
 
   return (
     <main className="desktop-dashboard">
-      <header className="page-header"><div><h1>作業登記工作台</h1><p>選擇課程後，直接點選未交作業的學生座號。</p></div></header>
+      <header className="page-header">
+        <div><h1>作業登記工作台</h1><p>選擇班級與作業項目，雙擊座號即可切換缺交狀態。</p></div>
+        <details className="create-popover"><summary className="btn btn-outline-primary"><i className="bi bi-plus-lg me-2" />新增班級</summary><form action={addClass}>
+          <label htmlFor="class-name">班級名稱</label><input id="class-name" className="form-control" name="name" placeholder="例如：七年一班" required maxLength={30} />
+          <label htmlFor="seat-count">座號人數</label><input id="seat-count" className="form-control" name="seatCount" type="number" min="1" max="60" defaultValue="32" required />
+          <button className="btn btn-primary w-100" type="submit">建立班級</button>
+        </form></details>
+      </header>
 
-      {sp.deletedSeat && (
-        <div className="undo-toast" role="status">
-          <span><i className="bi bi-trash3 me-2" />已刪除 {sp.deletedSeat} 號的紀錄</span>
-          <form action={undoDeleteRecord}>
-            <input type="hidden" name="date" value={date} /><input type="hidden" name="subject" value={subject} />
-            <input type="hidden" name="seat" value={sp.deletedSeat} /><input type="hidden" name="status" value={sp.deletedStatus ?? "open"} />
-            <button type="submit">復原</button>
+      <section className="workspace-panel">
+        <div className="panel-header course-panel-header"><div><span className="panel-kicker">01 / 登記範圍</span><h2>選擇日期、班級與作業項目</h2></div></div>
+        <AssignmentWorkspaceSelector date={date} maxDate={today} classId={classId} assignmentId={assignmentId} classes={classes.map(({ id, name }) => ({ id, name }))} assignments={assignments.map(({ id, title }) => ({ id, title }))} />
+
+        {classId > 0 && <details className="add-assignment-panel">
+          <summary><i className="bi bi-plus-circle me-2" />新增今天的作業項目</summary>
+          <form action={addAssignment}>
+            <input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
+            <div><label htmlFor="assignment-title">作業項目</label><input id="assignment-title" className="form-control" name="title" placeholder="例如：健康檢查回條" required maxLength={50} /></div>
+            <div className="flex-grow-1"><label htmlFor="assignment-description">作業內容說明</label><textarea id="assignment-description" className="form-control" name="description" placeholder="例如：請家長簽名，明天早上交回" rows={2} maxLength={500} /></div>
+            <button className="btn btn-primary" type="submit">新增項目</button>
           </form>
-        </div>
-      )}
+        </details>}
 
-      <div className="dashboard-grid dashboard-grid-single">
-        <section className="workspace-panel">
-          <div className="panel-header course-panel-header"><div><span className="panel-kicker">01 / 課程資訊</span><h2>選擇日期與科目</h2></div><div className="inline-summary"><span>{subject || "—"}</span><span className="is-open">未交 <strong>{openCount}</strong></span><span className="is-resolved">已補交 <strong>{resolvedCount}</strong></span></div></div>
-          <CourseSelector date={date} subject={subject} subjects={subjects.map(({ id, name }) => ({ id, name }))} maxDate={today} />
+        <div className="panel-divider" />
+        <div className="panel-header"><div><span className="panel-kicker">02 / 缺交登記</span><h2>{selectedAssignment ? selectedAssignment.title : "請先選擇作業項目"}</h2></div>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
-          <div className="panel-divider" />
-          <div className="panel-header"><div><span className="panel-kicker">02 / 座號登記</span><h2>點選本次未交座號</h2></div></div>
-          {subject ? (
-            <SeatSelector date={date} subject={subject} seatCount={SEAT_COUNT} records={records.map(({ id, seat, status }) => ({ id, seat, status }))} action={logRecords} markLateAction={markLate} reopenAction={reopenRecord} removeAction={removeRecord} />
-          ) : subjects.length === 0 ? (
-            <div className="alert alert-warning mb-0">目前沒有科目，請先完成科目設定。</div>
-          ) : (
-            <div className="subject-required-state"><i className="bi bi-hand-index-thumb" /><strong>請先選擇科目</strong><span>點選上方科目後，才會顯示座號與作業紀錄。</span></div>
-          )}
-        </section>
-      </div>
+        {selectedAssignment ? <>
+          <div className="assignment-description"><i className="bi bi-card-text" /><div><strong>作業內容</strong><p>{selectedAssignment.description || "尚未填寫說明"}</p></div></div>
+          <div className="double-click-hint"><i className="bi bi-mouse2 me-2" />在座號上點兩下切換「缺交／有交」</div>
+          <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatCount={selectedClass?.seat_count ?? 32} missingSeats={missingSeats} action={toggleAssignmentSeat} />
+        </> : (
+          <div className="subject-required-state"><i className="bi bi-hand-index-thumb" /><strong>{classId ? "請選擇或新增作業項目" : "請先選擇班級"}</strong><span>完成選擇後才會顯示座號。</span></div>
+        )}
+      </section>
     </main>
   );
 }

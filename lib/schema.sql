@@ -33,3 +33,30 @@ CREATE UNIQUE INDEX IF NOT EXISTS records_day_subject_seat ON records (date, sub
 
 -- 常用查詢：依日期區間 + 狀態彙整。
 CREATE INDEX IF NOT EXISTS records_date_status ON records (date, status);
+
+CREATE TABLE IF NOT EXISTS classes (
+    id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name       TEXT NOT NULL UNIQUE,
+    seat_count INTEGER NOT NULL DEFAULT 32,
+    created_at TEXT DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS assignments (
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    class_id    bigint NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    date        TEXT NOT NULL,
+    title       TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    created_at  TEXT DEFAULT '',
+    UNIQUE (class_id, date, title)
+);
+
+CREATE TABLE IF NOT EXISTS assignment_records (
+    id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    assignment_id bigint NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+    seat          INTEGER NOT NULL,
+    created_at    TEXT DEFAULT '',
+    UNIQUE (assignment_id, seat)
+);
+
+CREATE INDEX IF NOT EXISTS assignments_class_date ON assignments (class_id, date);

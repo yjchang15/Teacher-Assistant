@@ -170,7 +170,7 @@ export async function tx(statements: [string, unknown[]][]): Promise<void> {
 // Bump whenever schema.sql or the ALTER migrations below change, so existing
 // databases re-run the full init once. Between bumps, a cold instance skips the
 // schema round trips after a single cheap marker check.
-const SCHEMA_VERSION = "2026-07-18-homework-records";
+const SCHEMA_VERSION = "2026-07-19-multi-class-assignments";
 
 // 國中科目預設清單（可日後在 subjects 表增減）。
 const DEFAULT_SUBJECTS = ["國文", "英文", "數學", "自然", "歷史", "地理", "公民"];
@@ -194,6 +194,27 @@ async function runInit(): Promise<void> {
   for (const stmt of schema.split(";")) {
     if (stmt.trim()) await be.query(stmt, []);
   }
+
+  await be.query(
+    "INSERT INTO classes (name,seat_count,created_at) SELECT '預設班級',32,$1" +
+      " WHERE NOT EXISTS (SELECT 1 FROM classes) ON CONFLICT(name) DO NOTHING",
+    [new Date().toISOString()],
+  );
+  await be.query(
+    "INSERT INTO assignments (class_id,date,title,description,created_at)" +
+      " SELECT c.id,r.date,r.subject,'',MIN(r.created_at) FROM records r CROSS JOIN classes c" +
+      " WHERE c.name='預設班級' GROUP BY c.id,r.date,r.subject" +
+      " ON CONFLICT (class_id,date,title) DO NOTHING",
+    [],
+  );
+  await be.query(
+    "INSERT INTO assignment_records (assignment_id,seat,created_at)" +
+      " SELECT a.id,r.seat,r.created_at FROM records r" +
+      " JOIN classes c ON c.name='預設班級'" +
+      " JOIN assignments a ON a.class_id=c.id AND a.date=r.date AND a.title=r.subject" +
+      " WHERE r.status='open' ON CONFLICT (assignment_id,seat) DO NOTHING",
+    [],
+  );
   // Idempotent column migrations go here as the schema grows, e.g.:
   //   await be.query("ALTER TABLE records ADD COLUMN IF NOT EXISTS note TEXT DEFAULT ''", []);
 

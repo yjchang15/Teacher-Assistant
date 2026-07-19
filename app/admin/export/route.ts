@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import * as XLSX from "xlsx";
-import { getMatrix } from "@/lib/queries";
+import { getAssignmentMatrix, getClasses } from "@/lib/queries";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -23,7 +23,9 @@ export async function GET(req: NextRequest) {
   const rawEnd = requestedEnd <= today ? requestedEnd : today;
   const start = rawStart <= rawEnd ? rawStart : rawEnd;
   const end = rawStart <= rawEnd ? rawEnd : rawStart;
-  const matrix = await getMatrix(start, end);
+  const classes = await getClasses();
+  const selectedClass = classes.find((item) => item.id === Number(req.nextUrl.searchParams.get("classId"))) ?? classes[0];
+  const matrix = await getAssignmentMatrix(selectedClass?.id ?? 0, start, end, selectedClass?.seat_count ?? 32);
   const rows = matrix.rows.filter((row) => row.total > 0);
 
   const header = ["座號", ...matrix.subjects, "未交合計"];
@@ -41,7 +43,7 @@ export async function GET(req: NextRequest) {
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="homework-${start}_${end}.xlsx"`,
+      "Content-Disposition": `attachment; filename="homework-class-${selectedClass?.id ?? 0}-${start}_${end}.xlsx"`,
     },
   });
 }

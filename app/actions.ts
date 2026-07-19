@@ -92,3 +92,28 @@ export async function undoDeleteRecord(formData: FormData) {
   revalidateAll();
   redirect(`/?${new URLSearchParams({ date, subject }).toString()}`);
 }
+
+export async function addClass(formData: FormData) {
+  const name = s(formData, "name");
+  const seatCount = i(formData, "seatCount");
+  await db.createClass(name, seatCount);
+  revalidateAll();
+  redirect("/");
+}
+
+export async function addAssignment(formData: FormData) {
+  const classId = i(formData, "classId");
+  const date = s(formData, "date");
+  const title = s(formData, "title");
+  const description = s(formData, "description");
+  if (date <= todayInTaipei()) await db.createAssignment(classId, date, title, description);
+  revalidateAll();
+  redirect(`/?${new URLSearchParams({ classId: String(classId), date }).toString()}`);
+}
+
+export async function toggleAssignmentSeat(formData: FormData) {
+  const assignmentId = i(formData, "assignmentId");
+  const seat = i(formData, "seat");
+  await db.toggleMissingSeat(assignmentId, seat);
+  revalidateAll();
+}
