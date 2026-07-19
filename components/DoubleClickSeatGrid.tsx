@@ -55,7 +55,7 @@ export default function DoubleClickSeatGrid({
         </button>;
       })}
       </div>
-      <div className="seat-confirm-toolbar"><button type="button" className="btn btn-success btn-sm" onClick={() => setOthersConfirmed(true)}><i className="bi bi-check2-all me-2" />其餘有交</button></div>
+      <div className="seat-confirm-toolbar"><button type="button" className="btn btn-success btn-sm" onClick={() => setOthersConfirmed(true)}><i className="bi bi-check2-all me-2" />確認</button></div>
     </>
   );
 }

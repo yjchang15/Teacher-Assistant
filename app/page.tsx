@@ -64,7 +64,7 @@ export default async function LogPage({
         </div>}
 
         <div className="panel-divider" />
-        <div className="panel-header register-panel-header"><h2>{selectedAssignment ? <>缺交登記 <span>（點選缺交，再按其餘有交）</span></> : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
+        <div className="panel-header register-panel-header"><h2>{selectedAssignment ? <>缺交登記 <span>（點選缺交，再按確認）</span></> : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
         {selectedAssignment ? <>
           <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatCount={selectedClass?.seat_count ?? 32} students={students.map(({seat,student_number,name})=>({seat,studentNumber:student_number,name}))} missingSeats={missingSeats} action={toggleAssignmentSeat} />
