@@ -80,6 +80,15 @@ export async function getMissingDetails(classId: number, start: string, end: str
     WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3 ORDER BY ar.seat,a.date,a.id`, [classId, start, end])).map((r) => num(r, ["seat"]));
 }
 
+export interface ClassMissingSummary { assignment_id: number; date: string; title: string; description: string; seats: string; }
+export async function getClassMissingSummary(classId: number, start: string, end: string): Promise<ClassMissingSummary[]> {
+  return (await query<ClassMissingSummary>(`SELECT a.id assignment_id,a.date,a.title,a.description,
+    STRING_AGG(ar.seat::text, ',' ORDER BY ar.seat) seats
+    FROM assignments a JOIN assignment_records ar ON ar.assignment_id=a.id
+    WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3
+    GROUP BY a.id,a.date,a.title,a.description ORDER BY a.date,a.id`, [classId,start,end])).map((row)=>num(row,["assignment_id"]));
+}
+
 export const DEFAULT_JUNIOR_HIGH_ASSIGNMENTS = ["國文1", "英文1", "數學1", "理化1", "地理1", "歷史1", "公民1"] as const;
 
 // A class carries no user-facing name; its label is the linked account's

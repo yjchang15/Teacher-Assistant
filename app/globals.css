@@ -179,6 +179,11 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .student-report-card > header span { font-weight: 700; }
 .student-report-card > header small { color: var(--bs-secondary-color); }
 .student-report-focus { max-width: 960px; margin: 0 auto; }
+.class-missing-summary th:first-child { width: 190px; }
+.class-missing-summary th:nth-child(2) { width: 260px; }
+.class-missing-summary td:first-child small, .class-missing-summary td:first-child strong { display: block; }
+.class-missing-summary td:first-child small { margin-bottom: 3px; color: var(--bs-secondary-color); }
+.missing-seat-list { color: var(--bs-danger); font-size: 1rem; font-weight: 800; letter-spacing: .04em; }
 @media print { .app-sidebar { display:none!important; } .app-content { margin:0; padding:0; } }
 .empty-state { display: grid; justify-items: center; gap: 5px; padding: 64px 16px; color: var(--bs-secondary-color); text-align: center; }
 .empty-state i { margin-bottom: 4px; color: var(--bs-primary); font-size: 2rem; }

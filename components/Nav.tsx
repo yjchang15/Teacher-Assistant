@@ -15,7 +15,8 @@ export default function Nav({ account }: { account: { code: string; displayName:
         <Link href="/"><i className="bi bi-pencil-square" /><span>作業登記</span></Link>
         {account && <>
           <span className="sidebar-label">教師區</span>
-          <Link href="/admin"><i className="bi bi-bar-chart-fill" /><span>缺交統計</span></Link>
+          <Link href="/admin"><i className="bi bi-person-lines-fill" /><span>個人缺交列表</span></Link>
+          <Link href="/admin/class-summary"><i className="bi bi-table" /><span>全班缺交總表</span></Link>
           <Link href="/students"><i className="bi bi-people-fill" /><span>學生名單</span></Link>
         </>}
         {account?.role === "admin" && <>
