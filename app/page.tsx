@@ -59,18 +59,19 @@ export default async function LogPage({
             </form>
           </details> : undefined} />
 
+        {selectedAssignment && <div className="assignment-description">
+          <form className="assignment-description-form" action={editAssignmentDescription}>
+            <label htmlFor="active-assignment-description">{assignmentContentLabel}</label>
+            <input type="hidden" name="assignmentId" value={assignmentId} /><input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
+            <textarea id="active-assignment-description" className="form-control" name="description" defaultValue={selectedAssignment.description} placeholder="直接輸入今天的作業內容…" rows={2} maxLength={500} />
+            <button className="btn btn-primary btn-sm" type="submit"><i className="bi bi-check-lg me-1" />儲存</button>
+          </form>
+        </div>}
+
         <div className="panel-divider" />
         <div className="panel-header register-panel-header"><h2>{selectedAssignment ? "缺交登記" : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
         {selectedAssignment ? <>
-          <div className="assignment-description">
-            <form className="assignment-description-form" action={editAssignmentDescription}>
-              <label htmlFor="active-assignment-description">{assignmentContentLabel}</label>
-              <input type="hidden" name="assignmentId" value={assignmentId} /><input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
-              <textarea id="active-assignment-description" className="form-control" name="description" defaultValue={selectedAssignment.description} placeholder="直接輸入今天的作業內容…" rows={2} maxLength={500} />
-              <button className="btn btn-primary btn-sm" type="submit"><i className="bi bi-check-lg me-1" />儲存</button>
-            </form>
-          </div>
           <div className="double-click-hint"><i className="bi bi-mouse2 me-2" />雙擊座號切換缺交</div>
           <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatCount={selectedClass?.seat_count ?? 32} missingSeats={missingSeats} action={toggleAssignmentSeat} />
         </> : (
