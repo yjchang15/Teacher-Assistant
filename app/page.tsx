@@ -48,7 +48,8 @@ export default async function LogPage({
       <section className="workspace-panel">
         <div className="panel-header course-panel-header">
           <h2>作業項目</h2>
-          {classId > 0 && <details className="assignment-create-popover">
+        </div>
+        <AssignmentWorkspaceSelector date={date} classId={classId} assignmentId={assignmentId} assignments={assignments.map(({ id, title }) => ({ id, title }))} addControl={classId > 0 ? <details className="assignment-create-popover assignment-create-tile">
             <summary className="btn btn-outline-primary btn-sm"><i className="bi bi-plus-lg me-2" />新增項目</summary>
             <form action={addAssignment}>
               <div className="assignment-create-heading"><strong>新增作業項目</strong><span>{selectedClass?.name} · {date.replaceAll("-", "/")}</span></div>
@@ -56,9 +57,7 @@ export default async function LogPage({
               <div><label htmlFor="assignment-title">項目名稱</label><input id="assignment-title" className="form-control" name="title" placeholder="例如：健康檢查回條" required maxLength={50} /></div>
               <div className="assignment-create-actions"><button className="btn btn-primary" type="submit"><i className="bi bi-plus-lg me-2" />建立項目</button></div>
             </form>
-          </details>}
-        </div>
-        <AssignmentWorkspaceSelector date={date} classId={classId} assignmentId={assignmentId} assignments={assignments.map(({ id, title }) => ({ id, title }))} />
+          </details> : undefined} />
 
         <div className="panel-divider" />
         <div className="panel-header register-panel-header"><h2>{selectedAssignment ? "缺交登記" : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>

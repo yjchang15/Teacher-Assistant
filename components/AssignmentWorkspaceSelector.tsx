@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 
 export function RegistrationContextSelector({
   date,
@@ -25,20 +26,25 @@ export function RegistrationContextSelector({
   );
 }
 
-export default function AssignmentWorkspaceSelector({ date, classId, assignmentId, assignments }: {
+export default function AssignmentWorkspaceSelector({ date, classId, assignmentId, assignments, addControl }: {
   date: string;
   classId: number;
   assignmentId: number;
   assignments: { id: number; title: string }[];
+  addControl?: ReactNode;
 }) {
   const [applying, setApplying] = useState(false);
   return (
-    <form method="get" className={`assignment-workspace-selector ${applying ? "is-applying" : ""}`} onChange={(event) => { setApplying(true); event.currentTarget.requestSubmit(); }}>
-      <input type="hidden" name="date" value={date} /><input type="hidden" name="classId" value={classId} />
-      {classId > 0 && <fieldset><div className="workspace-options assignment-options">
-        {assignments.map((item) => <div key={item.id}><input id={`assignment-${item.id}`} type="radio" name="assignmentId" value={item.id} defaultChecked={item.id === assignmentId} /><label htmlFor={`assignment-${item.id}`}>{item.title}<i className="bi bi-check-circle-fill" /></label></div>)}
-      </div></fieldset>}
+    <div className={`assignment-workspace-selector ${applying ? "is-applying" : ""}`}>
+      {classId > 0 && <div className="workspace-options assignment-options">
+        {assignments.map((item) => <form method="get" key={item.id}>
+          <input type="hidden" name="date" value={date} /><input type="hidden" name="classId" value={classId} />
+          <input id={`assignment-${item.id}`} type="radio" name="assignmentId" value={item.id} defaultChecked={item.id === assignmentId} onChange={(event) => { setApplying(true); event.currentTarget.form?.requestSubmit(); }} />
+          <label htmlFor={`assignment-${item.id}`}>{item.title}<i className="bi bi-check-circle-fill" /></label>
+        </form>)}
+        {addControl}
+      </div>}
       {applying && <span className="course-loading" role="status"><span className="spinner-border spinner-border-sm" />更新中…</span>}
-    </form>
+    </div>
   );
 }
