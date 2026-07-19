@@ -11,11 +11,17 @@ export default function Nav({ account }: { account: { code: string; displayName:
       </Link>
 
       <nav className="sidebar-nav" aria-label="主要功能">
-        <span className="sidebar-label">工作區</span>
+        <span className="sidebar-label">學生區</span>
         <Link href="/"><i className="bi bi-pencil-square" /><span>作業登記</span></Link>
-        {account && <Link href="/admin"><i className="bi bi-bar-chart-fill" /><span>缺交統計</span></Link>}
-        {account && <Link href="/students"><i className="bi bi-people-fill" /><span>學生名單</span></Link>}
-        {account?.role === "admin" && <Link href="/admin/accounts"><i className="bi bi-person-gear" /><span>班級帳號</span></Link>}
+        {account && <>
+          <span className="sidebar-label">教師區</span>
+          <Link href="/admin"><i className="bi bi-bar-chart-fill" /><span>缺交統計</span></Link>
+          <Link href="/students"><i className="bi bi-people-fill" /><span>學生名單</span></Link>
+        </>}
+        {account?.role === "admin" && <>
+          <span className="sidebar-label">管理員區</span>
+          <Link href="/admin/accounts"><i className="bi bi-person-gear" /><span>班級帳號</span></Link>
+        </>}
       </nav>
 
       <div className="sidebar-footer">
