@@ -37,16 +37,17 @@ export async function updateAccountPassword(id: number, hash: string) { await ex
 // A class has no user-facing name — it is identified by its account code
 // (display_name = code). We create a fresh class (internal name = the unique
 // code) and link the account to it in one statement. Skips if the code exists.
-export async function createClassAccount(code: string, seatCount: number, hash: string) {
-  if (!code) return;
-  if (await getAccountByCode(code)) return;
+export async function createClassAccount(code: string, seatCount: number, hash: string): Promise<"created" | "exists"> {
+  if (!code || await getAccountByCode(code)) return "exists";
   const now = new Date().toISOString();
-  await execute(
-    "WITH c AS (INSERT INTO classes(name,seat_count,created_at) VALUES($1,$2,$3) RETURNING id)" +
+  const rows = await query<{ id: number }>(
+    "WITH c AS (INSERT INTO classes(name,seat_count,created_at) VALUES($1,$2,$3)" +
+      " ON CONFLICT(name) DO UPDATE SET seat_count=excluded.seat_count RETURNING id)" +
       " INSERT INTO accounts(code,display_name,role,class_id,password_hash,must_change_password,active,created_at)" +
-      " SELECT $4,$5,'class',c.id,$6,TRUE,TRUE,$3 FROM c",
+      " SELECT $4,$5,'class',c.id,$6,TRUE,TRUE,$3 FROM c ON CONFLICT(code) DO NOTHING RETURNING id",
     [code, seatCount, now, code, code, hash],
   );
+  return rows.length ? "created" : "exists";
 }
 export async function setAccountActive(id: number, active: boolean) { await execute("UPDATE accounts SET active=$1 WHERE id=$2 AND role='class'", [active, id]); }
 export async function resetAccountPassword(id: number, hash: string) { await execute("UPDATE accounts SET password_hash=$1,must_change_password=TRUE WHERE id=$2 AND role='class'", [hash, id]); }

@@ -98,8 +98,16 @@ export async function changePassword(formData: FormData) {
 
 export async function addClassAccount(formData: FormData) {
   await requireAdmin();
-  await db.createClassAccount(s(formData,"code"), Math.min(60,Math.max(1,i(formData,"seatCount"))), await passwordHash(DEFAULT_CLASS_PASSWORD));
-  revalidateAll(); redirect("/admin/accounts");
+  const code = s(formData,"code").toLowerCase();
+  if (!/^[a-z0-9_-]{2,20}$/.test(code)) redirect("/admin/accounts?error=code");
+  try {
+    const result = await db.createClassAccount(code, Math.min(60,Math.max(1,i(formData,"seatCount"))), await passwordHash(DEFAULT_CLASS_PASSWORD));
+    revalidateAll();
+    redirect(`/admin/accounts?${result === "created" ? "created=1" : "error=exists"}`);
+  } catch (error) {
+    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
+    redirect("/admin/accounts?error=database");
+  }
 }
 export async function toggleClassAccount(formData: FormData) { await requireAdmin(); await db.setAccountActive(i(formData,"id"), s(formData,"active") === "true"); revalidateAll(); }
 export async function resetClassPassword(formData: FormData) { await requireAdmin(); await db.resetAccountPassword(i(formData,"id"), await passwordHash(DEFAULT_CLASS_PASSWORD)); revalidateAll(); }
