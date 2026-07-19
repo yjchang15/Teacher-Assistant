@@ -1,7 +1,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { APP_PASSWORD, APP_USERNAME, DEFAULT_CLASS_PASSWORD, passwordHash } from "./auth";
+import { APP_PASSWORD, APP_USERNAME, passwordHash } from "./auth";
 
 // ── Backend selection ─────────────────────────────────────────────────────────
 // DATABASE_URL set  → PostgreSQL (Supabase) via the `postgres` driver.
@@ -171,10 +171,7 @@ export async function tx(statements: [string, unknown[]][]): Promise<void> {
 // Bump whenever schema.sql or the ALTER migrations below change, so existing
 // databases re-run the full init once. Between bumps, a cold instance skips the
 // schema round trips after a single cheap marker check.
-const SCHEMA_VERSION = "2026-07-19-class-accounts-students";
-
-// 國中科目預設清單（可日後在 subjects 表增減）。
-const DEFAULT_SUBJECTS = ["國文", "英文", "數學", "自然", "歷史", "地理", "公民"];
+const SCHEMA_VERSION = "2026-07-19-nameless-class-no-student-number";
 
 async function runInit(): Promise<void> {
   const be = await getBackend();
@@ -196,51 +193,18 @@ async function runInit(): Promise<void> {
     if (stmt.trim()) await be.query(stmt, []);
   }
 
-  await be.query(
-    "INSERT INTO classes (name,seat_count,created_at) SELECT '預設班級',32,$1" +
-      " WHERE NOT EXISTS (SELECT 1 FROM classes) ON CONFLICT(name) DO NOTHING",
-    [new Date().toISOString()],
-  );
-  await be.query(
-    "INSERT INTO assignments (class_id,date,title,description,created_at)" +
-      " SELECT c.id,r.date,r.subject,'',MIN(r.created_at) FROM records r CROSS JOIN classes c" +
-      " WHERE c.name='預設班級' GROUP BY c.id,r.date,r.subject" +
-      " ON CONFLICT (class_id,date,title) DO NOTHING",
-    [],
-  );
-  await be.query(
-    "INSERT INTO assignment_records (assignment_id,seat,created_at)" +
-      " SELECT a.id,r.seat,r.created_at FROM records r" +
-      " JOIN classes c ON c.name='預設班級'" +
-      " JOIN assignments a ON a.class_id=c.id AND a.date=r.date AND a.title=r.subject" +
-      " WHERE r.status='open' ON CONFLICT (assignment_id,seat) DO NOTHING",
-    [],
-  );
+  // Idempotent migration: 學號 is no longer used — drop the column (this also
+  // drops its UNIQUE constraint). Safe no-op once the column is gone.
+  await be.query("ALTER TABLE students DROP COLUMN IF EXISTS student_number", []);
+
+  // Bootstrap only the admin account. No 預設班級 / default class account is
+  // seeded — the admin creates class accounts on demand (each makes its class).
   const now = new Date().toISOString();
   await be.query(
     "INSERT INTO accounts(code,display_name,role,class_id,password_hash,must_change_password,active,created_at)" +
       " VALUES($1,'系統管理員','admin',NULL,$2,FALSE,TRUE,$3) ON CONFLICT(code) DO NOTHING",
     [APP_USERNAME, await passwordHash(APP_PASSWORD), now],
   );
-  await be.query(
-    "INSERT INTO accounts(code,display_name,role,class_id,password_hash,must_change_password,active,created_at)" +
-      " SELECT 'default',c.name,'class',c.id,$1,TRUE,TRUE,$2 FROM classes c WHERE c.name='預設班級'" +
-      " ON CONFLICT(code) DO NOTHING",
-    [await passwordHash(DEFAULT_CLASS_PASSWORD), now],
-  );
-  // Idempotent column migrations go here as the schema grows, e.g.:
-  //   await be.query("ALTER TABLE records ADD COLUMN IF NOT EXISTS note TEXT DEFAULT ''", []);
-
-  // Seed the default 科別 once (only when the table is empty, so edits stick).
-  const subjectCount = await be.query("SELECT COUNT(*) AS n FROM subjects", []);
-  if (Number((subjectCount[0] as { n: number }).n) === 0) {
-    await be.tx(
-      DEFAULT_SUBJECTS.map((name, i) => [
-        "INSERT INTO subjects (name, sort_order) VALUES ($1,$2)",
-        [name, i],
-      ]),
-    );
-  }
 
   // Mark this schema version as applied so later cold instances take the fast
   // path above instead of re-running the whole init.

@@ -78,12 +78,10 @@ CREATE TABLE IF NOT EXISTS students (
     id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     class_id       bigint NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
     seat           INTEGER NOT NULL,
-    student_number TEXT NOT NULL,
     name           TEXT DEFAULT '',
     active         BOOLEAN NOT NULL DEFAULT TRUE,
     created_at     TEXT DEFAULT '',
-    UNIQUE(class_id, seat),
-    UNIQUE(class_id, student_number)
+    UNIQUE(class_id, seat)
 );
 
 CREATE INDEX IF NOT EXISTS students_class_active ON students(class_id, active);

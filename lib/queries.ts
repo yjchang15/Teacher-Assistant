@@ -19,7 +19,7 @@ export interface Assignment {
 }
 
 export interface Account { id: number; code: string; display_name: string; role: "admin" | "class"; class_id: number | null; password_hash: string; must_change_password: boolean; active: boolean; last_login_at: string; }
-export interface Student { id: number; class_id: number; seat: number; student_number: string; name: string; active: boolean; }
+export interface Student { id: number; class_id: number; seat: number; name: string; active: boolean; }
 
 export async function getAccountByCode(code: string): Promise<Account | null> {
   const rows = await query<Account>("SELECT * FROM accounts WHERE lower(code)=lower($1) LIMIT 1", [code]);
@@ -34,12 +34,19 @@ export async function listAccounts(): Promise<Account[]> {
 }
 export async function touchLogin(id: number) { await execute("UPDATE accounts SET last_login_at=$1 WHERE id=$2", [new Date().toISOString(), id]); }
 export async function updateAccountPassword(id: number, hash: string) { await execute("UPDATE accounts SET password_hash=$1,must_change_password=FALSE WHERE id=$2", [hash, id]); }
-export async function createClassAccount(code: string, name: string, seatCount: number, hash: string) {
-  if (!code || !name) return;
-  await tx([
-    ["INSERT INTO classes(name,seat_count,created_at) VALUES($1,$2,$3) ON CONFLICT(name) DO NOTHING", [name, seatCount, new Date().toISOString()]],
-    ["INSERT INTO accounts(code,display_name,role,class_id,password_hash,must_change_password,active,created_at) SELECT $1,$2,'class',id,$3,TRUE,TRUE,$4 FROM classes WHERE name=$2 ON CONFLICT(code) DO NOTHING", [code, name, hash, new Date().toISOString()]],
-  ]);
+// A class has no user-facing name — the account's display_name identifies it.
+// We create a fresh class (internal name = the unique account code) and link the
+// account to it in one statement. Skips if the code is already taken.
+export async function createClassAccount(code: string, displayName: string, seatCount: number, hash: string) {
+  if (!code || !displayName) return;
+  if (await getAccountByCode(code)) return;
+  const now = new Date().toISOString();
+  await execute(
+    "WITH c AS (INSERT INTO classes(name,seat_count,created_at) VALUES($1,$2,$3) RETURNING id)" +
+      " INSERT INTO accounts(code,display_name,role,class_id,password_hash,must_change_password,active,created_at)" +
+      " SELECT $4,$5,'class',c.id,$6,TRUE,TRUE,$3 FROM c",
+    [code, seatCount, now, code, displayName, hash],
+  );
 }
 export async function setAccountActive(id: number, active: boolean) { await execute("UPDATE accounts SET active=$1 WHERE id=$2 AND role='class'", [active, id]); }
 export async function resetAccountPassword(id: number, hash: string) { await execute("UPDATE accounts SET password_hash=$1,must_change_password=TRUE WHERE id=$2 AND role='class'", [hash, id]); }
@@ -47,26 +54,26 @@ export async function resetAccountPassword(id: number, hash: string) { await exe
 export async function getStudents(classId: number): Promise<Student[]> {
   return (await query<Student>("SELECT * FROM students WHERE class_id=$1 ORDER BY seat", [classId])).map((r) => num(r, ["id", "class_id", "seat"]));
 }
-export async function saveStudent(classId: number, seat: number, studentNumber: string, name: string) {
-  if (!classId || seat < 1 || seat > 60 || !studentNumber) return;
-  await execute("INSERT INTO students(class_id,seat,student_number,name,active,created_at) VALUES($1,$2,$3,$4,TRUE,$5) ON CONFLICT(class_id,seat) DO UPDATE SET student_number=excluded.student_number,name=excluded.name,active=TRUE", [classId, seat, studentNumber, name, new Date().toISOString()]);
+export async function saveStudent(classId: number, seat: number, name: string) {
+  if (!classId || seat < 1 || seat > 60) return;
+  await execute("INSERT INTO students(class_id,seat,name,active,created_at) VALUES($1,$2,$3,TRUE,$4) ON CONFLICT(class_id,seat) DO UPDATE SET name=excluded.name,active=TRUE", [classId, seat, name, new Date().toISOString()]);
 }
-export async function replaceStudents(classId: number, students: { seat: number; studentNumber: string; name: string }[]) {
+export async function replaceStudents(classId: number, students: { seat: number; name: string }[]) {
   if (!classId || !students.length) return;
   const now = new Date().toISOString();
   await tx([
     ["DELETE FROM students WHERE class_id=$1", [classId]],
     ...students.map((student): [string, unknown[]] => [
-      "INSERT INTO students(class_id,seat,student_number,name,active,created_at) VALUES($1,$2,$3,$4,TRUE,$5)",
-      [classId, student.seat, student.studentNumber, student.name, now],
+      "INSERT INTO students(class_id,seat,name,active,created_at) VALUES($1,$2,$3,TRUE,$4)",
+      [classId, student.seat, student.name, now],
     ]),
   ]);
 }
 export async function deactivateStudent(id: number, classId: number) { await execute("UPDATE students SET active=FALSE WHERE id=$1 AND class_id=$2", [id, classId]); }
 
-export interface MissingDetail { seat: number; student_number: string; student_name: string; date: string; title: string; description: string; }
+export interface MissingDetail { seat: number; student_name: string; date: string; title: string; description: string; }
 export async function getMissingDetails(classId: number, start: string, end: string): Promise<MissingDetail[]> {
-  return (await query<MissingDetail>(`SELECT ar.seat,COALESCE(s.student_number,'') student_number,COALESCE(s.name,'') student_name,a.date,a.title,a.description
+  return (await query<MissingDetail>(`SELECT ar.seat,COALESCE(s.name,'') student_name,a.date,a.title,a.description
     FROM assignment_records ar JOIN assignments a ON a.id=ar.assignment_id
     LEFT JOIN students s ON s.class_id=a.class_id AND s.seat=ar.seat AND s.active=TRUE
     WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3 ORDER BY ar.seat,a.date,a.id`, [classId, start, end])).map((r) => num(r, ["seat"]));
@@ -74,8 +81,14 @@ export async function getMissingDetails(classId: number, start: string, end: str
 
 export const DEFAULT_JUNIOR_HIGH_ASSIGNMENTS = ["國文", "英文", "數學", "自然", "地理", "歷史", "公民"] as const;
 
+// A class carries no user-facing name; its label is the linked account's
+// display_name (falls back when a class has no active account row).
 export async function getClasses(): Promise<ClassRoom[]> {
-  const rows = await query<ClassRoom>("SELECT id,name,seat_count FROM classes ORDER BY id");
+  const rows = await query<ClassRoom>(
+    "SELECT c.id, COALESCE(a.display_name, '未命名班級') AS name, c.seat_count" +
+      " FROM classes c LEFT JOIN accounts a ON a.class_id=c.id AND a.role='class'" +
+      " ORDER BY c.id",
+  );
   return rows.map((row) => num(row, ["id", "seat_count"]));
 }
 

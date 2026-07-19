@@ -11,7 +11,7 @@ export default function DoubleClickSeatGrid({
 }: {
   assignmentId: number;
   seatCount: number;
-  students: { seat: number; studentNumber: string; name: string }[];
+  students: { seat: number; name: string }[];
   missingSeats: number[];
   action: (formData: FormData) => Promise<void>;
 }) {
@@ -45,11 +45,11 @@ export default function DoubleClickSeatGrid({
   return (
     <>
       <div className="double-click-seat-grid" role="group" aria-label="學生座號">
-      {(students.length ? students : Array.from({ length: seatCount }, (_, index) => ({seat:index+1,studentNumber:"",name:""}))).map((student) => {
+      {(students.length ? students : Array.from({ length: seatCount }, (_, index) => ({seat:index+1,name:""}))).map((student) => {
         const seat=student.seat;
         const isMissing = missing.has(seat);
         return <button key={seat} type="button" className={`double-click-seat ${isMissing ? "is-missing" : ""}`} onClick={() => toggle(seat)} disabled={pending === seat} title={isMissing ? "點一下取消缺交" : "點一下標記缺交"}>
-          <strong>{seat}</strong>{student.studentNumber&&<small>{student.studentNumber}</small>}<span>{isMissing ? "缺交" : ""}</span>
+          <strong>{seat}</strong>{student.name&&<small>{student.name}</small>}<span>{isMissing ? "缺交" : ""}</span>
         </button>;
       })}
       </div>

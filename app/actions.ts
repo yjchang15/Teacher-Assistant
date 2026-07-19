@@ -103,7 +103,7 @@ export async function addClassAccount(formData: FormData) {
 }
 export async function toggleClassAccount(formData: FormData) { await requireAdmin(); await db.setAccountActive(i(formData,"id"), s(formData,"active") === "true"); revalidateAll(); }
 export async function resetClassPassword(formData: FormData) { await requireAdmin(); await db.resetAccountPassword(i(formData,"id"), await passwordHash(DEFAULT_CLASS_PASSWORD)); revalidateAll(); }
-export async function upsertStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.saveStudent(classId,i(formData,"seat"),s(formData,"studentNumber"),s(formData,"name")); revalidateAll(); }
+export async function upsertStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.saveStudent(classId,i(formData,"seat"),s(formData,"name")); revalidateAll(); }
 export async function removeStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.deactivateStudent(i(formData,"id"),classId); revalidateAll(); }
 
 export async function importStudentRoster(formData: FormData) {
@@ -120,16 +120,14 @@ export async function importStudentRoster(formData: FormData) {
     const headers = (rows[0] ?? []).map((value) => String(value).trim().toLowerCase());
     const findColumn = (...names: string[]) => headers.findIndex((header) => names.includes(header));
     const seatColumn = findColumn("座號", "seat");
-    const numberColumn = findColumn("學號", "student_number", "student number", "studentnumber");
     const nameColumn = findColumn("姓名", "name");
-    if (seatColumn < 0 || numberColumn < 0) redirect(`${back}&error=headers`);
+    if (seatColumn < 0) redirect(`${back}&error=headers`);
     const parsed = rows.slice(1).map((row) => ({
       seat: Math.trunc(Number(String(row[seatColumn] ?? "").trim())),
-      studentNumber: String(row[numberColumn] ?? "").trim(),
       name: nameColumn >= 0 ? String(row[nameColumn] ?? "").trim() : "",
-    })).filter((row) => row.seat || row.studentNumber || row.name);
-    const seats = new Set<number>(); const numbers = new Set<string>();
-    const valid = parsed.length > 0 && parsed.length <= 60 && parsed.every((row) => row.seat >= 1 && row.seat <= 60 && row.studentNumber && !seats.has(row.seat) && !numbers.has(row.studentNumber) && (seats.add(row.seat), numbers.add(row.studentNumber), true));
+    })).filter((row) => row.seat || row.name);
+    const seats = new Set<number>();
+    const valid = parsed.length > 0 && parsed.length <= 60 && parsed.every((row) => row.seat >= 1 && row.seat <= 60 && !seats.has(row.seat) && (seats.add(row.seat), true));
     if (!valid) redirect(`${back}&error=rows`);
     await db.replaceStudents(classId, parsed);
     revalidateAll();
