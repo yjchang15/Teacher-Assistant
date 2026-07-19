@@ -18,6 +18,8 @@ export interface Assignment {
   description: string;
 }
 
+export const DEFAULT_JUNIOR_HIGH_ASSIGNMENTS = ["國文", "英文", "數學", "自然", "地理", "歷史", "公民"] as const;
+
 export async function getClasses(): Promise<ClassRoom[]> {
   const rows = await query<ClassRoom>("SELECT id,name,seat_count FROM classes ORDER BY id");
   return rows.map((row) => num(row, ["id", "seat_count"]));
@@ -33,8 +35,17 @@ export async function createClass(name: string, seatCount = SEAT_COUNT): Promise
 }
 
 export async function getAssignments(classId: number, date: string): Promise<Assignment[]> {
+  if (!classId || !date) return [];
+  const createdAt = new Date().toISOString();
+  await tx(DEFAULT_JUNIOR_HIGH_ASSIGNMENTS.map((title) => [
+    "INSERT INTO assignments (class_id,date,title,description,created_at) VALUES ($1,$2,$3,'',$4) ON CONFLICT(class_id,date,title) DO NOTHING",
+    [classId, date, title, createdAt],
+  ]));
   const rows = await query<Assignment>(
-    "SELECT id,class_id,date,title,description FROM assignments WHERE class_id=$1 AND date=$2 ORDER BY id",
+    `SELECT id,class_id,date,title,description FROM assignments WHERE class_id=$1 AND date=$2
+     ORDER BY CASE title
+       WHEN '國文' THEN 1 WHEN '英文' THEN 2 WHEN '數學' THEN 3 WHEN '自然' THEN 4
+       WHEN '地理' THEN 5 WHEN '歷史' THEN 6 WHEN '公民' THEN 7 ELSE 99 END, id`,
     [classId, date],
   );
   return rows.map((row) => num(row, ["id", "class_id"]));
