@@ -130,17 +130,11 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .assignment-create-popover textarea { min-height: 82px; resize: vertical; }
 .assignment-create-actions { display: flex; justify-content: flex-end; }
 .assignment-description { position: relative; display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; padding: 13px 15px; border-left: 4px solid var(--bs-primary); border-radius: 8px; background: var(--bs-tertiary-bg); }
-.assignment-description > i { color: var(--bs-primary); font-size: 1.15rem; }
-.assignment-description-copy { min-width: 0; flex: 1; }
-.assignment-description strong { font-size: .78rem; }
-.assignment-description p { margin: 3px 0 0; white-space: pre-wrap; color: var(--bs-secondary-color); font-size: .88rem; }
-.assignment-edit-popover { position: relative; flex: 0 0 auto; }
-.assignment-edit-popover > summary { list-style: none; cursor: pointer; }
-.assignment-edit-popover > summary::-webkit-details-marker { display: none; }
-.assignment-edit-popover > form { position: absolute; right: 0; top: 38px; z-index: 44; display: grid; gap: 11px; width: 440px; padding: 16px; border: 1px solid var(--bs-border-color); border-radius: 12px; background: var(--bs-body-bg); box-shadow: 0 16px 38px rgba(20, 30, 50, .18); }
-.assignment-edit-popover textarea { min-height: 100px; resize: vertical; }
-.assignment-edit-popover form > div { display: flex; align-items: center; justify-content: space-between; }
-.assignment-edit-popover form > div span { color: var(--bs-secondary-color); font-size: .7rem; }
+.assignment-description > i { margin-top: 28px; color: var(--bs-primary); font-size: 1.15rem; }
+.assignment-description-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; width: 100%; align-items: end; }
+.assignment-description-form label { grid-column: 1 / -1; color: var(--bs-body-color); font-size: .8rem; font-weight: 800; }
+.assignment-description-form textarea { min-height: 58px; resize: vertical; }
+.assignment-description-form button { height: 38px; min-width: 76px; }
 .missing-count { padding: 5px 10px; border-radius: 99px; color: var(--bs-danger); background: rgba(var(--bs-danger-rgb),.1); font-size: .78rem; font-weight: 800; }
 .double-click-hint { margin-bottom: 10px; color: var(--bs-secondary-color); font-size: .75rem; }
 .double-click-seat-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 9px; user-select: none; }
