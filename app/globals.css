@@ -161,7 +161,7 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .double-click-seat.is-missing span { color: var(--bs-danger); }
 .double-click-seat.is-submitted { border-color: rgba(var(--bs-success-rgb),.35); color: var(--bs-success); background: rgba(var(--bs-success-rgb),.1); }
 .double-click-seat:disabled { opacity: .6; }
-.seat-confirm-toolbar { display: flex; justify-content: flex-end; margin: -4px 0 9px; }
+.seat-confirm-toolbar { display: flex; justify-content: flex-end; margin-top: 10px; }
 
 .count-pill { padding: 5px 10px; border-radius: 999px; color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .1); font-size: .75rem; font-weight: 800; }
 .record-scroll { display: grid; gap: 8px; max-height: calc(100vh - 190px); overflow-y: auto; padding-right: 3px; }

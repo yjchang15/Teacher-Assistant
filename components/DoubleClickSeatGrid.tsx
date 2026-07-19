@@ -45,7 +45,6 @@ export default function DoubleClickSeatGrid({
 
   return (
     <>
-      <div className="seat-confirm-toolbar"><button type="button" className="btn btn-success btn-sm" onClick={() => setOthersConfirmed(true)}><i className="bi bi-check2-all me-2" />其餘有交</button></div>
       <div className="double-click-seat-grid" role="group" aria-label="學生座號">
       {(students.length ? students : Array.from({ length: seatCount }, (_, index) => ({seat:index+1,studentNumber:"",name:""}))).map((student) => {
         const seat=student.seat;
@@ -56,6 +55,7 @@ export default function DoubleClickSeatGrid({
         </button>;
       })}
       </div>
+      <div className="seat-confirm-toolbar"><button type="button" className="btn btn-success btn-sm" onClick={() => setOthersConfirmed(true)}><i className="bi bi-check2-all me-2" />其餘有交</button></div>
     </>
   );
 }
