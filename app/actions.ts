@@ -121,6 +121,15 @@ export async function editAssignmentDescription(formData: FormData) {
   redirect(`/?${new URLSearchParams({ classId: String(classId), date, assignmentId: String(assignmentId) }).toString()}`);
 }
 
+export async function deleteAssignment(formData: FormData) {
+  const assignmentId = i(formData, "assignmentId");
+  const classId = i(formData, "classId");
+  const date = s(formData, "date");
+  await db.deleteCustomAssignment(assignmentId);
+  revalidateAll();
+  redirect(`/?${new URLSearchParams({ classId: String(classId), date }).toString()}`);
+}
+
 export async function toggleAssignmentSeat(formData: FormData) {
   const assignmentId = i(formData, "assignmentId");
   const seat = i(formData, "seat");

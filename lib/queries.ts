@@ -65,6 +65,14 @@ export async function updateAssignmentDescription(assignmentId: number, descript
   await execute("UPDATE assignments SET description=$1 WHERE id=$2", [description, assignmentId]);
 }
 
+export async function deleteCustomAssignment(assignmentId: number): Promise<void> {
+  if (!assignmentId) return;
+  await execute(
+    `DELETE FROM assignments WHERE id=$1 AND title NOT IN (${DEFAULT_JUNIOR_HIGH_ASSIGNMENTS.map((_, index) => `$${index + 2}`).join(",")})`,
+    [assignmentId, ...DEFAULT_JUNIOR_HIGH_ASSIGNMENTS],
+  );
+}
+
 export async function getMissingSeats(assignmentId: number): Promise<number[]> {
   const rows = await query<{ seat: number }>(
     "SELECT seat FROM assignment_records WHERE assignment_id=$1 ORDER BY seat",
