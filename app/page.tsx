@@ -1,6 +1,6 @@
 import { DEFAULT_JUNIOR_HIGH_ASSIGNMENTS, getClasses, getAssignments, getMissingSeats } from "@/lib/queries";
 import { addClass, addAssignment, editAssignmentDescription, toggleAssignmentSeat } from "@/app/actions";
-import AssignmentWorkspaceSelector from "@/components/AssignmentWorkspaceSelector";
+import AssignmentWorkspaceSelector, { RegistrationContextSelector } from "@/components/AssignmentWorkspaceSelector";
 import DoubleClickSeatGrid from "@/components/DoubleClickSeatGrid";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +42,10 @@ export default async function LogPage({
         </form></details>
       </header>
 
+      <div className="registration-context-bar">
+        <RegistrationContextSelector date={date} maxDate={today} classId={classId} classes={classes.map(({ id, name }) => ({ id, name }))} />
+      </div>
+
       <section className="workspace-panel">
         <div className="panel-header course-panel-header">
           <h2>作業項目</h2>
@@ -55,7 +59,7 @@ export default async function LogPage({
             </form>
           </details>}
         </div>
-        <AssignmentWorkspaceSelector date={date} maxDate={today} classId={classId} assignmentId={assignmentId} classes={classes.map(({ id, name }) => ({ id, name }))} assignments={assignments.map(({ id, title }) => ({ id, title }))} />
+        <AssignmentWorkspaceSelector date={date} classId={classId} assignmentId={assignmentId} assignments={assignments.map(({ id, title }) => ({ id, title }))} />
 
         <div className="panel-divider" />
         <div className="panel-header register-panel-header"><h2>{selectedAssignment ? "缺交登記" : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
