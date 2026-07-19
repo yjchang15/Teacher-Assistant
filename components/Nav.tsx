@@ -7,7 +7,7 @@ export default function Nav({ account }: { account: { code: string; displayName:
     <aside className="app-sidebar">
       <Link className="sidebar-brand" href="/">
         <span className="brand-mark"><i className="bi bi-mortarboard-fill" /></span>
-        <span><strong>Teacher Assistant</strong><small>班級作業管理</small></span>
+        <span><strong>Teacher Assistant</strong><small>班級管理助手</small></span>
       </Link>
 
       <nav className="sidebar-nav" aria-label="主要功能">

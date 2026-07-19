@@ -6,7 +6,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
   return (
     <main className="px-3 mx-auto" style={{ maxWidth: 420, marginTop: "10vh" }}>
-      <div className="text-center mb-4"><i className="bi bi-mortarboard-fill text-primary" style={{ fontSize: "2.6rem" }} /><h1 className="h3 fw-bold mt-2 mb-1">Teacher Assistant</h1><p className="text-body-secondary">登入班級作業管理系統</p></div>
+      <div className="text-center mb-4"><i className="bi bi-mortarboard-fill text-primary" style={{ fontSize: "2.6rem" }} /><h1 className="h3 fw-bold mt-2 mb-1">Teacher Assistant</h1><p className="text-body-secondary">登入班級管理助手</p></div>
       <div className="card workflow-card"><div className="card-body p-4">
         {error && <div className="alert alert-danger py-2"><i className="bi bi-exclamation-circle me-2" />帳號或密碼錯誤，請再試一次。</div>}
         <form action={login}>
