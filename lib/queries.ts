@@ -34,18 +34,18 @@ export async function listAccounts(): Promise<Account[]> {
 }
 export async function touchLogin(id: number) { await execute("UPDATE accounts SET last_login_at=$1 WHERE id=$2", [new Date().toISOString(), id]); }
 export async function updateAccountPassword(id: number, hash: string) { await execute("UPDATE accounts SET password_hash=$1,must_change_password=FALSE WHERE id=$2", [hash, id]); }
-// A class has no user-facing name — the account's display_name identifies it.
-// We create a fresh class (internal name = the unique account code) and link the
-// account to it in one statement. Skips if the code is already taken.
-export async function createClassAccount(code: string, displayName: string, seatCount: number, hash: string) {
-  if (!code || !displayName) return;
+// A class has no user-facing name — it is identified by its account code
+// (display_name = code). We create a fresh class (internal name = the unique
+// code) and link the account to it in one statement. Skips if the code exists.
+export async function createClassAccount(code: string, seatCount: number, hash: string) {
+  if (!code) return;
   if (await getAccountByCode(code)) return;
   const now = new Date().toISOString();
   await execute(
     "WITH c AS (INSERT INTO classes(name,seat_count,created_at) VALUES($1,$2,$3) RETURNING id)" +
       " INSERT INTO accounts(code,display_name,role,class_id,password_hash,must_change_password,active,created_at)" +
       " SELECT $4,$5,'class',c.id,$6,TRUE,TRUE,$3 FROM c",
-    [code, seatCount, now, code, displayName, hash],
+    [code, seatCount, now, code, code, hash],
   );
 }
 export async function setAccountActive(id: number, active: boolean) { await execute("UPDATE accounts SET active=$1 WHERE id=$2 AND role='class'", [active, id]); }

@@ -98,7 +98,7 @@ export async function changePassword(formData: FormData) {
 
 export async function addClassAccount(formData: FormData) {
   await requireAdmin();
-  await db.createClassAccount(s(formData,"code"), s(formData,"name"), Math.min(60,Math.max(1,i(formData,"seatCount"))), await passwordHash(DEFAULT_CLASS_PASSWORD));
+  await db.createClassAccount(s(formData,"code"), Math.min(60,Math.max(1,i(formData,"seatCount"))), await passwordHash(DEFAULT_CLASS_PASSWORD));
   revalidateAll(); redirect("/admin/accounts");
 }
 export async function toggleClassAccount(formData: FormData) { await requireAdmin(); await db.setAccountActive(i(formData,"id"), s(formData,"active") === "true"); revalidateAll(); }

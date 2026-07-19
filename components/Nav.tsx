@@ -28,7 +28,7 @@ export default function Nav({ account }: { account: { code: string; displayName:
         <div className="d-flex align-items-center justify-content-between">
           <span className="small text-body-secondary">顯示模式</span><ThemeToggle />
         </div>
-        {account && <><div className="small mt-3"><strong>{account.displayName}</strong><br/><span className="text-body-secondary">{account.code}</span></div><Link className="btn btn-link btn-sm px-0" href="/password">修改密碼</Link><form action={logout}><button className="btn btn-outline-secondary w-100 mt-2" type="submit"><i className="bi bi-box-arrow-right me-2" />登出</button></form></>}
+        {account && <><div className="small mt-3"><strong>{account.displayName}</strong>{account.code !== account.displayName && <><br/><span className="text-body-secondary">{account.code}</span></>}</div><Link className="btn btn-link btn-sm px-0" href="/password">修改密碼</Link><form action={logout}><button className="btn btn-outline-secondary w-100 mt-2" type="submit"><i className="bi bi-box-arrow-right me-2" />登出</button></form></>}
       </div>
     </aside>
   );
