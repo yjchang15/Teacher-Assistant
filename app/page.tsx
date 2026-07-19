@@ -51,7 +51,6 @@ export default async function LogPage({
               <div className="assignment-create-heading"><strong>新增作業項目</strong><span>{selectedClass?.name} · {date.replaceAll("-", "/")}</span></div>
               <input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
               <div><label htmlFor="assignment-title">項目名稱</label><input id="assignment-title" className="form-control" name="title" placeholder="例如：健康檢查回條" required maxLength={50} /></div>
-              <div><label htmlFor="assignment-description">作業內容說明 <span>（選填）</span></label><textarea id="assignment-description" className="form-control" name="description" placeholder="例如：請家長簽名，明天早上交回" rows={3} maxLength={500} /></div>
               <div className="assignment-create-actions"><button className="btn btn-primary" type="submit"><i className="bi bi-plus-lg me-2" />建立項目</button></div>
             </form>
           </details>}
