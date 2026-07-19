@@ -1,5 +1,5 @@
 import { getClasses, getAssignments, getMissingSeats } from "@/lib/queries";
-import { addClass, addAssignment, toggleAssignmentSeat } from "@/app/actions";
+import { addClass, addAssignment, editAssignmentDescription, toggleAssignmentSeat } from "@/app/actions";
 import AssignmentWorkspaceSelector from "@/components/AssignmentWorkspaceSelector";
 import DoubleClickSeatGrid from "@/components/DoubleClickSeatGrid";
 
@@ -59,7 +59,19 @@ export default async function LogPage({
         <div className="panel-header"><div><span className="panel-kicker">02 / 缺交登記</span><h2>{selectedAssignment ? selectedAssignment.title : "請先選擇作業項目"}</h2></div>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
         {selectedAssignment ? <>
-          <div className="assignment-description"><i className="bi bi-card-text" /><div><strong>作業內容</strong><p>{selectedAssignment.description || "尚未填寫說明"}</p></div></div>
+          <div className="assignment-description">
+            <i className="bi bi-card-text" />
+            <div className="assignment-description-copy"><strong>作業內容</strong><p>{selectedAssignment.description || "尚未填寫說明"}</p></div>
+            <details className="assignment-edit-popover">
+              <summary className="btn btn-sm btn-outline-secondary"><i className="bi bi-pencil me-1" />編輯</summary>
+              <form action={editAssignmentDescription}>
+                <strong>編輯作業內容</strong>
+                <input type="hidden" name="assignmentId" value={assignmentId} /><input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
+                <textarea className="form-control" name="description" defaultValue={selectedAssignment.description} placeholder="輸入作業內容說明" rows={4} maxLength={500} autoFocus />
+                <div><span>最多 500 字</span><button className="btn btn-primary btn-sm" type="submit">儲存內容</button></div>
+              </form>
+            </details>
+          </div>
           <div className="double-click-hint"><i className="bi bi-mouse2 me-2" />在座號上點兩下切換「缺交／有交」</div>
           <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatCount={selectedClass?.seat_count ?? 32} missingSeats={missingSeats} action={toggleAssignmentSeat} />
         </> : (

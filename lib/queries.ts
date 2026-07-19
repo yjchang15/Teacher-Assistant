@@ -49,6 +49,11 @@ export async function createAssignment(classId: number, date: string, title: str
   );
 }
 
+export async function updateAssignmentDescription(assignmentId: number, description: string): Promise<void> {
+  if (!assignmentId) return;
+  await execute("UPDATE assignments SET description=$1 WHERE id=$2", [description, assignmentId]);
+}
+
 export async function getMissingSeats(assignmentId: number): Promise<number[]> {
   const rows = await query<{ seat: number }>(
     "SELECT seat FROM assignment_records WHERE assignment_id=$1 ORDER BY seat",
