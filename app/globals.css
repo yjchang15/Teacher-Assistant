@@ -49,6 +49,7 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .course-panel-header { margin-bottom: 10px; }
 .course-panel-header h2 { margin: 0; }
 .register-panel-header { margin-bottom: 12px; }
+.register-panel-header h2 span { color: var(--bs-secondary-color); font-size: .75rem; font-weight: 600; }
 .registration-context-bar { min-width: 430px; flex: 1; margin-left: auto; }
 .page-header > div:first-child { flex: 0 0 auto; }
 .inline-summary { display: flex; overflow: hidden; border: 1px solid var(--bs-border-color); border-radius: 9px; }
@@ -151,7 +152,6 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .assignment-description-form textarea { min-height: 54px; resize: vertical; }
 .assignment-description-form button { height: 38px; min-width: 76px; }
 .missing-count { padding: 5px 10px; border-radius: 99px; color: var(--bs-danger); background: rgba(var(--bs-danger-rgb),.1); font-size: .78rem; font-weight: 800; }
-.double-click-hint { margin-bottom: 8px; color: var(--bs-secondary-color); font-size: .72rem; }
 .double-click-seat-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 9px; user-select: none; }
 .double-click-seat { display: grid; place-items: center; grid-template-rows: 1fr auto; height: 78px; padding: 10px 5px 8px; border: 1px solid var(--bs-border-color); border-radius: 10px; color: var(--bs-body-color); background: var(--bs-body-bg); cursor: default; }
 .double-click-seat strong { font-size: 1.55rem; line-height: 1; }

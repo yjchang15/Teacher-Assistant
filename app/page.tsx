@@ -69,10 +69,9 @@ export default async function LogPage({
         </div>}
 
         <div className="panel-divider" />
-        <div className="panel-header register-panel-header"><h2>{selectedAssignment ? "缺交登記" : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
+        <div className="panel-header register-panel-header"><h2>{selectedAssignment ? <>缺交登記 <span>（雙擊座號切換缺交）</span></> : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
         {selectedAssignment ? <>
-          <div className="double-click-hint"><i className="bi bi-mouse2 me-2" />雙擊座號切換缺交</div>
           <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatCount={selectedClass?.seat_count ?? 32} missingSeats={missingSeats} action={toggleAssignmentSeat} />
         </> : (
           <div className="subject-required-state"><i className="bi bi-hand-index-thumb" /><strong>{classId ? "請選擇或新增作業項目" : "請先選擇班級"}</strong><span>完成選擇後才會顯示座號。</span></div>
