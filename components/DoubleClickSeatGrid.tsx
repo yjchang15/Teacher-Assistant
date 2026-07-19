@@ -17,6 +17,7 @@ export default function DoubleClickSeatGrid({
 }) {
   const [missing, setMissing] = useState(() => new Set(missingSeats));
   const [pending, setPending] = useState<number | null>(null);
+  const [othersConfirmed, setOthersConfirmed] = useState(false);
 
   async function toggle(seat: number) {
     if (pending !== null) return;
@@ -43,14 +44,18 @@ export default function DoubleClickSeatGrid({
   }
 
   return (
-    <div className="double-click-seat-grid" role="group" aria-label="學生座號">
+    <>
+      <div className="seat-confirm-toolbar"><button type="button" className="btn btn-success btn-sm" onClick={() => setOthersConfirmed(true)}><i className="bi bi-check2-all me-2" />其餘有交</button></div>
+      <div className="double-click-seat-grid" role="group" aria-label="學生座號">
       {(students.length ? students : Array.from({ length: seatCount }, (_, index) => ({seat:index+1,studentNumber:"",name:""}))).map((student) => {
         const seat=student.seat;
         const isMissing = missing.has(seat);
-        return <button key={seat} type="button" className={`double-click-seat ${isMissing ? "is-missing" : ""}`} onDoubleClick={() => toggle(seat)} disabled={pending === seat} title="點兩下切換缺交狀態">
-          <strong>{seat}</strong>{student.studentNumber&&<small>{student.studentNumber}</small>}<span>{isMissing ? "缺交" : "有交"}</span>
+        const isSubmitted = othersConfirmed && !isMissing;
+        return <button key={seat} type="button" className={`double-click-seat ${isMissing ? "is-missing" : ""} ${isSubmitted ? "is-submitted" : ""}`} onClick={() => toggle(seat)} disabled={pending === seat} title={isMissing ? "點一下取消缺交" : "點一下標記缺交"}>
+          <strong>{seat}</strong>{student.studentNumber&&<small>{student.studentNumber}</small>}<span>{isMissing ? "缺交" : isSubmitted ? "有交" : ""}</span>
         </button>;
       })}
-    </div>
+      </div>
+    </>
   );
 }
