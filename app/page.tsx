@@ -35,16 +35,15 @@ export default async function LogPage({
     <main className="desktop-dashboard">
       <header className="page-header">
         <div><h1>作業登記工作台</h1><p>選擇班級與作業項目，雙擊座號即可切換缺交狀態。</p></div>
+        <div className="registration-context-bar">
+          <RegistrationContextSelector date={date} maxDate={today} classId={classId} classes={classes.map(({ id, name }) => ({ id, name }))} />
+        </div>
         <details className="create-popover"><summary className="btn btn-outline-primary"><i className="bi bi-plus-lg me-2" />新增班級</summary><form action={addClass}>
           <label htmlFor="class-name">班級名稱</label><input id="class-name" className="form-control" name="name" placeholder="例如：七年一班" required maxLength={30} />
           <label htmlFor="seat-count">座號人數</label><input id="seat-count" className="form-control" name="seatCount" type="number" min="1" max="60" defaultValue="32" required />
           <button className="btn btn-primary w-100" type="submit">建立班級</button>
         </form></details>
       </header>
-
-      <div className="registration-context-bar">
-        <RegistrationContextSelector date={date} maxDate={today} classId={classId} classes={classes.map(({ id, name }) => ({ id, name }))} />
-      </div>
 
       <section className="workspace-panel">
         <div className="panel-header course-panel-header">
