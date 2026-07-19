@@ -44,9 +44,9 @@ export default async function LogPage({
 
       <section className="workspace-panel">
         <div className="panel-header course-panel-header">
-          <div><span className="panel-kicker">01 / 登記範圍</span><h2>選擇日期、班級與作業項目</h2></div>
+          <h2>登記範圍</h2>
           {classId > 0 && <details className="assignment-create-popover">
-            <summary className="btn btn-outline-primary btn-sm"><i className="bi bi-plus-lg me-2" />新增作業項目</summary>
+            <summary className="btn btn-outline-primary btn-sm"><i className="bi bi-plus-lg me-2" />新增項目</summary>
             <form action={addAssignment}>
               <div className="assignment-create-heading"><strong>新增作業項目</strong><span>{selectedClass?.name} · {date.replaceAll("-", "/")}</span></div>
               <input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
@@ -58,11 +58,10 @@ export default async function LogPage({
         <AssignmentWorkspaceSelector date={date} maxDate={today} classId={classId} assignmentId={assignmentId} classes={classes.map(({ id, name }) => ({ id, name }))} assignments={assignments.map(({ id, title }) => ({ id, title }))} />
 
         <div className="panel-divider" />
-        <div className="panel-header"><div><span className="panel-kicker">02 / 缺交登記</span><h2>{selectedAssignment ? "缺交座號登記" : "請先選擇作業項目"}</h2></div>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
+        <div className="panel-header register-panel-header"><h2>{selectedAssignment ? "缺交登記" : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
         {selectedAssignment ? <>
           <div className="assignment-description">
-            <i className="bi bi-card-text" />
             <form className="assignment-description-form" action={editAssignmentDescription}>
               <label htmlFor="active-assignment-description">{assignmentContentLabel}</label>
               <input type="hidden" name="assignmentId" value={assignmentId} /><input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
@@ -70,7 +69,7 @@ export default async function LogPage({
               <button className="btn btn-primary btn-sm" type="submit"><i className="bi bi-check-lg me-1" />儲存</button>
             </form>
           </div>
-          <div className="double-click-hint"><i className="bi bi-mouse2 me-2" />在座號上點兩下切換「缺交／有交」</div>
+          <div className="double-click-hint"><i className="bi bi-mouse2 me-2" />雙擊座號切換缺交</div>
           <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatCount={selectedClass?.seat_count ?? 32} missingSeats={missingSeats} action={toggleAssignmentSeat} />
         </> : (
           <div className="subject-required-state"><i className="bi bi-hand-index-thumb" /><strong>{classId ? "請選擇或新增作業項目" : "請先選擇班級"}</strong><span>完成選擇後才會顯示座號。</span></div>

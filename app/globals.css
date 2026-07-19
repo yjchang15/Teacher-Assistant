@@ -42,17 +42,19 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .dashboard-grid { display: grid; grid-template-columns: minmax(570px, 1fr) 320px; gap: 18px; align-items: start; }
 .dashboard-grid-single { grid-template-columns: minmax(0, 1fr); }
 .workspace-panel, .records-panel { border: 1px solid var(--bs-border-color); border-radius: var(--app-radius); background: var(--bs-body-bg); box-shadow: 0 10px 30px rgba(25, 35, 55, .055); }
-.workspace-panel { padding: 24px 26px 26px; }
+.workspace-panel { padding: 18px 20px 22px; }
 .records-panel { position: sticky; top: 24px; padding: 22px; }
 .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
 .panel-header h2 { margin: 3px 0 0; font-size: 1.05rem; font-weight: 800; }
-.course-panel-header { margin-bottom: 14px; }
+.course-panel-header { margin-bottom: 10px; }
+.course-panel-header h2 { margin: 0; }
+.register-panel-header { margin-bottom: 12px; }
 .inline-summary { display: flex; overflow: hidden; border: 1px solid var(--bs-border-color); border-radius: 9px; }
 .inline-summary > span { padding: 7px 12px; border-left: 1px solid var(--bs-border-color); color: var(--bs-secondary-color); font-size: .75rem; font-weight: 700; }
 .inline-summary > span:first-child { border-left: 0; color: var(--bs-body-color); }
 .inline-summary .is-open strong { margin-left: 4px; color: var(--bs-danger); font-size: .95rem; }
 .inline-summary .is-resolved strong { margin-left: 4px; color: var(--bs-success); font-size: .95rem; }
-.panel-divider { height: 1px; margin: 24px -26px; background: var(--bs-border-color); }
+.panel-divider { height: 1px; margin: 18px -20px; background: var(--bs-border-color); }
 .course-toolbar { position: relative; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 18px; align-items: end; }
 .course-toolbar label, .course-toolbar legend { display: block; margin-bottom: 6px; color: var(--bs-secondary-color); font-size: .75rem; font-weight: 700; }
 .course-toolbar .form-control, .course-toolbar .form-select, .course-toolbar .btn { height: 42px; }
@@ -108,7 +110,7 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .create-popover > summary::-webkit-details-marker { display: none; }
 .create-popover > form { position: absolute; right: 0; top: 48px; z-index: 40; display: grid; gap: 9px; width: 280px; padding: 16px; border: 1px solid var(--bs-border-color); border-radius: 12px; background: var(--bs-body-bg); box-shadow: 0 16px 40px rgba(0,0,0,.16); }
 .create-popover label, .assignment-create-popover label { margin-bottom: 5px; color: var(--bs-secondary-color); font-size: .72rem; font-weight: 800; }
-.assignment-workspace-selector { position: relative; display: grid; grid-template-columns: 180px minmax(180px, 260px) minmax(360px, 1fr); gap: 18px; align-items: end; }
+.assignment-workspace-selector { position: relative; display: grid; grid-template-columns: 180px minmax(220px, max-content) minmax(420px, 1fr); gap: 14px; align-items: end; }
 .assignment-workspace-selector fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .assignment-workspace-selector legend, .workspace-date-field label { margin-bottom: 6px; color: var(--bs-secondary-color); font-size: .75rem; font-weight: 800; }
 .workspace-options { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -127,14 +129,13 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .assignment-create-heading strong { font-size: .95rem; }
 .assignment-create-heading span { color: var(--bs-secondary-color); font-size: .75rem; }
 .assignment-create-actions { display: flex; justify-content: flex-end; }
-.assignment-description { position: relative; display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; padding: 13px 15px; border-left: 4px solid var(--bs-primary); border-radius: 8px; background: var(--bs-tertiary-bg); }
-.assignment-description > i { margin-top: 28px; color: var(--bs-primary); font-size: 1.15rem; }
+.assignment-description { position: relative; margin-bottom: 9px; padding: 11px 13px; border-left: 4px solid var(--bs-primary); border-radius: 8px; background: var(--bs-tertiary-bg); }
 .assignment-description-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; width: 100%; align-items: end; }
 .assignment-description-form label { grid-column: 1 / -1; color: var(--bs-body-color); font-size: .8rem; font-weight: 800; }
-.assignment-description-form textarea { min-height: 58px; resize: vertical; }
+.assignment-description-form textarea { min-height: 54px; resize: vertical; }
 .assignment-description-form button { height: 38px; min-width: 76px; }
 .missing-count { padding: 5px 10px; border-radius: 99px; color: var(--bs-danger); background: rgba(var(--bs-danger-rgb),.1); font-size: .78rem; font-weight: 800; }
-.double-click-hint { margin-bottom: 10px; color: var(--bs-secondary-color); font-size: .75rem; }
+.double-click-hint { margin-bottom: 8px; color: var(--bs-secondary-color); font-size: .72rem; }
 .double-click-seat-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 9px; user-select: none; }
 .double-click-seat { display: grid; place-items: center; grid-template-rows: 1fr auto; height: 78px; padding: 10px 5px 8px; border: 1px solid var(--bs-border-color); border-radius: 10px; color: var(--bs-body-color); background: var(--bs-body-bg); cursor: default; }
 .double-click-seat strong { font-size: 1.55rem; line-height: 1; }
