@@ -90,7 +90,7 @@ export async function changePassword(formData: FormData) {
   const account = await requireAccount(true);
   const password = s(formData, "password");
   const confirm = s(formData, "confirm");
-  if (password.length < 8 || password !== confirm) redirect("/password?error=1");
+  if (!password || password !== confirm) redirect("/password?error=1");
   await db.updateAccountPassword(account.id, await passwordHash(password));
   const c = await cookies();
   c.set(AUTH_COOKIE, await createSessionToken({ id: account.id, code: account.code, role: account.role, classId: account.class_id, mustChange: false }), { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
