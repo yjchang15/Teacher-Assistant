@@ -147,10 +147,10 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .assignment-create-tile > summary { display: inline-flex; align-items: center; justify-content: center; min-width: 110px; height: 42px; padding: 0 14px; border-color: var(--bs-border-color); border-radius: 9px; font-size: .92rem; font-weight: 800; }
 .assignment-create-tile[open] > summary { border-color: var(--bs-primary); }
 .assignment-description { position: relative; margin-top: 12px; padding: 11px 13px; border-left: 4px solid var(--bs-primary); border-radius: 8px; background: var(--bs-tertiary-bg); }
-.assignment-description-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; width: 100%; align-items: end; }
-.assignment-description-form label { grid-column: 1 / -1; color: var(--bs-body-color); font-size: .8rem; font-weight: 800; }
+.assignment-description-form { display: grid; gap: 6px; width: 100%; }
+.assignment-description-form label { display: flex; align-items: center; justify-content: space-between; color: var(--bs-body-color); font-size: .8rem; font-weight: 800; }
+.assignment-description-form label span { color: var(--bs-primary); font-size: .7rem; font-weight: 700; }
 .assignment-description-form textarea { min-height: 54px; resize: vertical; }
-.assignment-description-form button { height: 38px; min-width: 76px; }
 .missing-count { padding: 5px 10px; border-radius: 99px; color: var(--bs-danger); background: rgba(var(--bs-danger-rgb),.1); font-size: .78rem; font-weight: 800; }
 .double-click-seat-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 9px; user-select: none; }
 .double-click-seat { display: grid; place-items: center; grid-template-rows: 1fr auto; height: 78px; padding: 10px 5px 8px; border: 1px solid var(--bs-border-color); border-radius: 10px; color: var(--bs-body-color); background: var(--bs-body-bg); cursor: default; }

@@ -113,12 +113,9 @@ export async function addAssignment(formData: FormData) {
 
 export async function editAssignmentDescription(formData: FormData) {
   const assignmentId = i(formData, "assignmentId");
-  const classId = i(formData, "classId");
-  const date = s(formData, "date");
   const description = s(formData, "description");
   await db.updateAssignmentDescription(assignmentId, description);
   revalidateAll();
-  redirect(`/?${new URLSearchParams({ classId: String(classId), date, assignmentId: String(assignmentId) }).toString()}`);
 }
 
 export async function deleteAssignment(formData: FormData) {

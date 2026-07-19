@@ -2,6 +2,7 @@ import { DEFAULT_JUNIOR_HIGH_ASSIGNMENTS, getClasses, getAssignments, getMissing
 import { addClass, addAssignment, deleteAssignment, editAssignmentDescription, renameAssignment, toggleAssignmentSeat } from "@/app/actions";
 import AssignmentWorkspaceSelector, { RegistrationContextSelector } from "@/components/AssignmentWorkspaceSelector";
 import DoubleClickSeatGrid from "@/components/DoubleClickSeatGrid";
+import AssignmentDescriptionEditor from "@/components/AssignmentDescriptionEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -60,12 +61,7 @@ export default async function LogPage({
           </details> : undefined} />
 
         {selectedAssignment && <div className="assignment-description">
-          <form className="assignment-description-form" action={editAssignmentDescription}>
-            <label htmlFor="active-assignment-description">{assignmentContentLabel}</label>
-            <input type="hidden" name="assignmentId" value={assignmentId} /><input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
-            <textarea id="active-assignment-description" className="form-control" name="description" defaultValue={selectedAssignment.description} placeholder="直接輸入今天的作業內容…" rows={2} maxLength={500} />
-            <button className="btn btn-primary btn-sm" type="submit"><i className="bi bi-check-lg me-1" />儲存</button>
-          </form>
+          <AssignmentDescriptionEditor assignmentId={assignmentId} classId={classId} date={date} label={assignmentContentLabel} description={selectedAssignment.description} action={editAssignmentDescription} />
         </div>}
 
         <div className="panel-divider" />
