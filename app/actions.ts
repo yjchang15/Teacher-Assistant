@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { AUTH_COOKIE, createSessionToken, DEFAULT_CLASS_PASSWORD, passwordHash } from "@/lib/auth";
 import { requireAccount, requireAdmin } from "@/lib/session";
 import * as db from "@/lib/queries";
+import * as XLSX from "xlsx";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const i = (fd: FormData, k: string) => Math.trunc(Number(String(fd.get(k) ?? "").trim()));
@@ -104,6 +105,40 @@ export async function toggleClassAccount(formData: FormData) { await requireAdmi
 export async function resetClassPassword(formData: FormData) { await requireAdmin(); await db.resetAccountPassword(i(formData,"id"), await passwordHash(DEFAULT_CLASS_PASSWORD)); revalidateAll(); }
 export async function upsertStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.saveStudent(classId,i(formData,"seat"),s(formData,"studentNumber"),s(formData,"name")); revalidateAll(); }
 export async function removeStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.deactivateStudent(i(formData,"id"),classId); revalidateAll(); }
+
+export async function importStudentRoster(formData: FormData) {
+  const account = await requireAccount();
+  const classId = account.role === "admin" ? i(formData, "classId") : account.class_id ?? 0;
+  const file = formData.get("file");
+  const back = `/students?${new URLSearchParams({ classId: String(classId) }).toString()}`;
+  if (!(file instanceof File) || !file.size || file.size > 2 * 1024 * 1024) redirect(`${back}&error=file`);
+  try {
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    if (!sheet) redirect(`${back}&error=sheet`);
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: "" });
+    const headers = (rows[0] ?? []).map((value) => String(value).trim().toLowerCase());
+    const findColumn = (...names: string[]) => headers.findIndex((header) => names.includes(header));
+    const seatColumn = findColumn("座號", "seat");
+    const numberColumn = findColumn("學號", "student_number", "student number", "studentnumber");
+    const nameColumn = findColumn("姓名", "name");
+    if (seatColumn < 0 || numberColumn < 0) redirect(`${back}&error=headers`);
+    const parsed = rows.slice(1).map((row) => ({
+      seat: Math.trunc(Number(String(row[seatColumn] ?? "").trim())),
+      studentNumber: String(row[numberColumn] ?? "").trim(),
+      name: nameColumn >= 0 ? String(row[nameColumn] ?? "").trim() : "",
+    })).filter((row) => row.seat || row.studentNumber || row.name);
+    const seats = new Set<number>(); const numbers = new Set<string>();
+    const valid = parsed.length > 0 && parsed.length <= 60 && parsed.every((row) => row.seat >= 1 && row.seat <= 60 && row.studentNumber && !seats.has(row.seat) && !numbers.has(row.studentNumber) && (seats.add(row.seat), numbers.add(row.studentNumber), true));
+    if (!valid) redirect(`${back}&error=rows`);
+    await db.replaceStudents(classId, parsed);
+    revalidateAll();
+    redirect(`${back}&imported=${parsed.length}`);
+  } catch (error) {
+    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
+    redirect(`${back}&error=parse`);
+  }
+}
 
 export async function undoDeleteRecord(formData: FormData) {
   const date = s(formData, "date");

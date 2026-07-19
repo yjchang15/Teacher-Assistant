@@ -51,6 +51,17 @@ export async function saveStudent(classId: number, seat: number, studentNumber: 
   if (!classId || seat < 1 || seat > 60 || !studentNumber) return;
   await execute("INSERT INTO students(class_id,seat,student_number,name,active,created_at) VALUES($1,$2,$3,$4,TRUE,$5) ON CONFLICT(class_id,seat) DO UPDATE SET student_number=excluded.student_number,name=excluded.name,active=TRUE", [classId, seat, studentNumber, name, new Date().toISOString()]);
 }
+export async function replaceStudents(classId: number, students: { seat: number; studentNumber: string; name: string }[]) {
+  if (!classId || !students.length) return;
+  const now = new Date().toISOString();
+  await tx([
+    ["DELETE FROM students WHERE class_id=$1", [classId]],
+    ...students.map((student): [string, unknown[]] => [
+      "INSERT INTO students(class_id,seat,student_number,name,active,created_at) VALUES($1,$2,$3,$4,TRUE,$5)",
+      [classId, student.seat, student.studentNumber, student.name, now],
+    ]),
+  ]);
+}
 export async function deactivateStudent(id: number, classId: number) { await execute("UPDATE students SET active=FALSE WHERE id=$1 AND class_id=$2", [id, classId]); }
 
 export interface MissingDetail { seat: number; student_number: string; student_name: string; date: string; title: string; description: string; }
