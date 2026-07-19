@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { AUTH_COOKIE, createSessionToken, DEFAULT_CLASS_PASSWORD, passwordHash } from "@/lib/auth";
+import { AUTH_COOKIE, createSessionToken, passwordHash } from "@/lib/auth";
 import { requireAccount, requireAdmin } from "@/lib/session";
 import * as db from "@/lib/queries";
 import * as XLSX from "xlsx";
@@ -31,7 +31,8 @@ export async function login(formData: FormData) {
   const username = s(formData, "username");
   const password = s(formData, "password");
   const account = await db.getAccountByCode(username);
-  if (!account?.active || account.password_hash !== await passwordHash(password)) redirect("/login?error=1");
+  const initialClassPassword = account?.role === "class" && account.must_change_password && password.toLowerCase() === account.code.toLowerCase();
+  if (!account?.active || account.password_hash !== await passwordHash(password) && !initialClassPassword) redirect("/login?error=1");
   await db.touchLogin(account.id);
   const c = await cookies();
   c.set(AUTH_COOKIE, await createSessionToken({ id: account.id, code: account.code, role: account.role, classId: account.class_id, mustChange: account.must_change_password }), {
@@ -101,7 +102,7 @@ export async function addClassAccount(formData: FormData) {
   const code = s(formData,"code").toLowerCase();
   if (!/^[a-z0-9_-]{2,20}$/.test(code)) redirect("/admin/accounts?error=code");
   try {
-    const result = await db.createClassAccount(code, Math.min(60,Math.max(1,i(formData,"seatCount"))), await passwordHash(DEFAULT_CLASS_PASSWORD));
+    const result = await db.createClassAccount(code, Math.min(60,Math.max(1,i(formData,"seatCount"))), await passwordHash(code));
     revalidateAll();
     redirect(`/admin/accounts?${result === "created" ? "created=1" : "error=exists"}`);
   } catch (error) {
@@ -110,7 +111,7 @@ export async function addClassAccount(formData: FormData) {
   }
 }
 export async function toggleClassAccount(formData: FormData) { await requireAdmin(); await db.setAccountActive(i(formData,"id"), s(formData,"active") === "true"); revalidateAll(); }
-export async function resetClassPassword(formData: FormData) { await requireAdmin(); await db.resetAccountPassword(i(formData,"id"), await passwordHash(DEFAULT_CLASS_PASSWORD)); revalidateAll(); }
+export async function resetClassPassword(formData: FormData) { await requireAdmin(); const account=await db.getAccountById(i(formData,"id")); if(account?.role==="class") await db.resetAccountPassword(account.id, await passwordHash(account.code)); revalidateAll(); }
 export async function upsertStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.saveStudent(classId,i(formData,"seat"),s(formData,"name")); revalidateAll(); }
 export async function removeStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.deactivateStudent(i(formData,"id"),classId); revalidateAll(); }
 

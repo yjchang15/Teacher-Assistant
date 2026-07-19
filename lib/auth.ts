@@ -1,7 +1,6 @@
 export const AUTH_COOKIE = "ta_session";
 export const APP_USERNAME = process.env.APP_USERNAME || "admin";
 export const APP_PASSWORD = process.env.APP_PASSWORD || "change-me";
-export const DEFAULT_CLASS_PASSWORD = process.env.DEFAULT_CLASS_PASSWORD || APP_PASSWORD;
 const SECRET_KEY = process.env.SECRET_KEY || "dev-insecure-key-change-me";
 
 export type SessionPayload = { id: number; code: string; role: "admin" | "class"; classId: number | null; mustChange: boolean };
