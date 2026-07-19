@@ -22,6 +22,7 @@ export default function Nav({ account }: { account: { code: string; displayName:
         {account?.role === "admin" && <>
           <span className="sidebar-label">管理員區</span>
           <Link href="/admin/accounts"><i className="bi bi-person-gear" /><span>班級帳號</span></Link>
+          <Link href="/admin/maintenance"><i className="bi bi-tools" /><span>資料維護</span></Link>
         </>}
       </nav>
 

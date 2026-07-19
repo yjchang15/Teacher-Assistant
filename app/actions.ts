@@ -14,6 +14,9 @@ const i = (fd: FormData, k: string) => Math.trunc(Number(String(fd.get(k) ?? "")
 function revalidateAll() {
   revalidatePath("/");
   revalidatePath("/admin");
+  revalidatePath("/admin/accounts");
+  revalidatePath("/admin/maintenance");
+  revalidatePath("/students");
 }
 
 function todayInTaipei() {
@@ -112,6 +115,8 @@ export async function addClassAccount(formData: FormData) {
 }
 export async function toggleClassAccount(formData: FormData) { await requireAdmin(); await db.setAccountActive(i(formData,"id"), s(formData,"active") === "true"); revalidateAll(); }
 export async function resetClassPassword(formData: FormData) { await requireAdmin(); const account=await db.getAccountById(i(formData,"id")); if(account?.role==="class") await db.resetAccountPassword(account.id, await passwordHash(account.code)); revalidateAll(); }
+export async function adminDeleteClassAccount(formData:FormData){await requireAdmin();await db.deleteClassAccount(i(formData,"id"));revalidateAll();redirect("/admin/maintenance?deleted=account");}
+export async function adminDeleteMissingRecord(formData:FormData){await requireAdmin();await db.deleteAssignmentRecord(i(formData,"id"));revalidateAll();const params=new URLSearchParams({classId:s(formData,"classId"),date:s(formData,"date"),deleted:"record"});redirect(`/admin/maintenance?${params}`);}
 export async function upsertStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.saveStudent(classId,i(formData,"seat"),s(formData,"name")); revalidateAll(); }
 export async function removeStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.deactivateStudent(i(formData,"id"),classId); revalidateAll(); }
 

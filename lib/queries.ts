@@ -51,6 +51,11 @@ export async function createClassAccount(code: string, seatCount: number, hash: 
 }
 export async function setAccountActive(id: number, active: boolean) { await execute("UPDATE accounts SET active=$1 WHERE id=$2 AND role='class'", [active, id]); }
 export async function resetAccountPassword(id: number, hash: string) { await execute("UPDATE accounts SET password_hash=$1,must_change_password=TRUE WHERE id=$2 AND role='class'", [hash, id]); }
+export async function deleteClassAccount(id: number): Promise<void> {
+  const account=await getAccountById(id);
+  if (!account || account.role!=="class" || !account.class_id) return;
+  await tx([["DELETE FROM accounts WHERE id=$1 AND role='class'",[id]],["DELETE FROM classes WHERE id=$1",[account.class_id]]]);
+}
 
 export async function getStudents(classId: number): Promise<Student[]> {
   return (await query<Student>("SELECT * FROM students WHERE class_id=$1 ORDER BY seat", [classId])).map((r) => num(r, ["id", "class_id", "seat"]));
@@ -88,6 +93,13 @@ export async function getClassMissingSummary(classId: number, start: string, end
     WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3
     GROUP BY a.id,a.date,a.title,a.description ORDER BY a.date,a.id`, [classId,start,end])).map((row)=>num(row,["assignment_id"]));
 }
+
+export interface MaintenanceMissingRecord { id: number; seat: number; title: string; description: string; }
+export async function getMaintenanceMissingRecords(classId:number,date:string):Promise<MaintenanceMissingRecord[]> {
+  return (await query<MaintenanceMissingRecord>(`SELECT ar.id,ar.seat,a.title,a.description FROM assignment_records ar
+    JOIN assignments a ON a.id=ar.assignment_id WHERE a.class_id=$1 AND a.date=$2 ORDER BY a.id,ar.seat`,[classId,date])).map((row)=>num(row,["id","seat"]));
+}
+export async function deleteAssignmentRecord(id:number):Promise<void>{if(id) await execute("DELETE FROM assignment_records WHERE id=$1",[id]);}
 
 export const DEFAULT_JUNIOR_HIGH_ASSIGNMENTS = ["國文1", "英文1", "數學1", "理化1", "地理1", "歷史1", "公民1"] as const;
 
