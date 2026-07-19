@@ -123,12 +123,16 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .workspace-options input:checked + label { border-color: var(--bs-primary); color: white; background: var(--bs-primary); }
 .workspace-options input:checked + label i { display: inline; }
 .assignment-option { position: relative; }
-.assignment-delete-form { position: absolute; right: 3px; top: 3px; }
-.assignment-delete-form button { display: grid; place-items: center; width: 21px; height: 21px; padding: 0; border: 0; border-radius: 5px; color: var(--bs-secondary-color); background: transparent; font-size: .68rem; opacity: 0; transition: opacity .12s ease, color .12s ease, background-color .12s ease; }
-.assignment-option:hover .assignment-delete-form button, .assignment-delete-form button:focus-visible { opacity: 1; }
+.assignment-delete-form, .assignment-edit-form { position: absolute; top: 3px; }
+.assignment-delete-form { right: 3px; }
+.assignment-edit-form { right: 26px; }
+.assignment-delete-form button, .assignment-edit-form button { display: grid; place-items: center; width: 21px; height: 21px; padding: 0; border: 0; border-radius: 5px; color: var(--bs-secondary-color); background: transparent; font-size: .68rem; opacity: 0; transition: opacity .12s ease, color .12s ease, background-color .12s ease; }
+.assignment-option:hover .assignment-delete-form button, .assignment-option:hover .assignment-edit-form button, .assignment-delete-form button:focus-visible, .assignment-edit-form button:focus-visible { opacity: 1; }
 .assignment-delete-form button:hover { color: var(--bs-danger); background: rgba(var(--bs-danger-rgb), .1); }
-.assignment-option:has(input:checked) .assignment-delete-form button { color: rgba(255,255,255,.8); }
+.assignment-edit-form button:hover { color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .1); }
+.assignment-option:has(input:checked) .assignment-delete-form button, .assignment-option:has(input:checked) .assignment-edit-form button { color: rgba(255,255,255,.8); }
 .assignment-option:has(input:checked) .assignment-delete-form button:hover { color: white; background: rgba(255,255,255,.18); }
+.assignment-option:has(input:checked) .assignment-edit-form button:hover { color: white; background: rgba(255,255,255,.18); }
 .assignment-workspace-selector.is-applying, .registration-context-selector.is-applying { opacity: .65; pointer-events: none; }
 .assignment-create-popover { position: relative; }
 .assignment-create-popover > summary { min-width: 138px; list-style: none; cursor: pointer; }

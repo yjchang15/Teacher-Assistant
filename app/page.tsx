@@ -1,5 +1,5 @@
 import { DEFAULT_JUNIOR_HIGH_ASSIGNMENTS, getClasses, getAssignments, getMissingSeats } from "@/lib/queries";
-import { addClass, addAssignment, deleteAssignment, editAssignmentDescription, toggleAssignmentSeat } from "@/app/actions";
+import { addClass, addAssignment, deleteAssignment, editAssignmentDescription, renameAssignment, toggleAssignmentSeat } from "@/app/actions";
 import AssignmentWorkspaceSelector, { RegistrationContextSelector } from "@/components/AssignmentWorkspaceSelector";
 import DoubleClickSeatGrid from "@/components/DoubleClickSeatGrid";
 
@@ -49,7 +49,7 @@ export default async function LogPage({
         <div className="panel-header course-panel-header">
           <h2>作業項目</h2>
         </div>
-        <AssignmentWorkspaceSelector date={date} classId={classId} assignmentId={assignmentId} deleteAction={deleteAssignment} assignments={assignments.map(({ id, title }) => ({ id, title, canDelete: !DEFAULT_JUNIOR_HIGH_ASSIGNMENTS.includes(title as typeof DEFAULT_JUNIOR_HIGH_ASSIGNMENTS[number]) }))} addControl={classId > 0 ? <details className="assignment-create-popover assignment-create-tile">
+        <AssignmentWorkspaceSelector date={date} classId={classId} assignmentId={assignmentId} deleteAction={deleteAssignment} renameAction={renameAssignment} assignments={assignments.map(({ id, title }) => ({ id, title, canDelete: !DEFAULT_JUNIOR_HIGH_ASSIGNMENTS.includes(title as typeof DEFAULT_JUNIOR_HIGH_ASSIGNMENTS[number]) }))} addControl={classId > 0 ? <details className="assignment-create-popover assignment-create-tile">
             <summary className="btn btn-outline-primary btn-sm"><i className="bi bi-plus-lg me-2" />新增項目</summary>
             <form action={addAssignment}>
               <div className="assignment-create-heading"><strong>新增作業項目</strong><span>{selectedClass?.name} · {date.replaceAll("-", "/")}</span></div>

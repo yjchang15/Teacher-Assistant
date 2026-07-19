@@ -73,6 +73,16 @@ export async function deleteCustomAssignment(assignmentId: number): Promise<void
   );
 }
 
+export async function renameCustomAssignment(assignmentId: number, title: string): Promise<void> {
+  if (!assignmentId || !title || DEFAULT_JUNIOR_HIGH_ASSIGNMENTS.includes(title as typeof DEFAULT_JUNIOR_HIGH_ASSIGNMENTS[number])) return;
+  const defaults = DEFAULT_JUNIOR_HIGH_ASSIGNMENTS.map((_, index) => `$${index + 3}`).join(",");
+  await execute(
+    `UPDATE assignments SET title=$1 WHERE id=$2 AND title NOT IN (${defaults})
+     AND NOT EXISTS (SELECT 1 FROM assignments other WHERE other.class_id=assignments.class_id AND other.date=assignments.date AND other.title=$1 AND other.id<>assignments.id)`,
+    [title, assignmentId, ...DEFAULT_JUNIOR_HIGH_ASSIGNMENTS],
+  );
+}
+
 export async function getMissingSeats(assignmentId: number): Promise<number[]> {
   const rows = await query<{ seat: number }>(
     "SELECT seat FROM assignment_records WHERE assignment_id=$1 ORDER BY seat",
