@@ -5,13 +5,13 @@ import { useState } from "react";
 export default function DoubleClickSeatGrid({
   assignmentId,
   seatCount,
-  students,
+  seats,
   missingSeats,
   action,
 }: {
   assignmentId: number;
   seatCount: number;
-  students: { seat: number; name: string }[];
+  seats: number[];
   missingSeats: number[];
   action: (formData: FormData) => Promise<void>;
 }) {
@@ -42,17 +42,17 @@ export default function DoubleClickSeatGrid({
     }
   }
 
+  // Fall back to 1..seatCount when the class has no roster of its own.
+  const shown = seats.length ? seats : Array.from({ length: seatCount }, (_, index) => index + 1);
+
   return (
-    <>
-      <div className="double-click-seat-grid" role="group" aria-label="學生座號">
-      {(students.length ? students : Array.from({ length: seatCount }, (_, index) => ({seat:index+1,name:""}))).map((student) => {
-        const seat=student.seat;
+    <div className="double-click-seat-grid" role="group" aria-label="學生座號">
+      {shown.map((seat) => {
         const isMissing = missing.has(seat);
         return <button key={seat} type="button" className={`double-click-seat ${isMissing ? "is-missing" : ""}`} onClick={() => toggle(seat)} disabled={pending === seat} title={isMissing ? "點一下取消缺交" : "點一下標記缺交"}>
-          <strong>{seat}</strong>{student.name&&<small>{student.name}</small>}<span>{isMissing ? "缺交" : ""}</span>
+          <strong>{seat}</strong><span>{isMissing ? "缺交" : ""}</span>
         </button>;
       })}
-      </div>
-    </>
+    </div>
   );
 }

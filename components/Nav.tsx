@@ -2,7 +2,7 @@ import Link from "next/link";
 import { logout } from "@/app/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 
-export default function Nav({ account }: { account: { code: string; displayName: string; role: "admin" | "class" } | null }) {
+export default function Nav({ account }: { account: { code: string; displayName: string } | null }) {
   return (
     <aside className="app-sidebar">
       <Link className="sidebar-brand" href="/">
@@ -11,17 +11,15 @@ export default function Nav({ account }: { account: { code: string; displayName:
       </Link>
 
       <nav className="sidebar-nav" aria-label="主要功能">
-        <span className="sidebar-label">學生區</span>
+        <span className="sidebar-label">登記</span>
         <Link href="/"><i className="bi bi-pencil-square" /><span>作業登記</span></Link>
         {account && <>
-          <span className="sidebar-label">教師區</span>
+          <span className="sidebar-label">報表</span>
           <Link href="/admin"><i className="bi bi-person-lines-fill" /><span>個人缺交列表</span></Link>
           <Link href="/admin/class-summary"><i className="bi bi-table" /><span>全班缺交總表</span></Link>
-          <Link href="/students"><i className="bi bi-people-fill" /><span>學生名單</span></Link>
-        </>}
-        {account?.role === "admin" && <>
-          <span className="sidebar-label">管理員區</span>
-          <Link href="/admin/accounts"><i className="bi bi-person-gear" /><span>班級帳號</span></Link>
+          <span className="sidebar-label">設定</span>
+          <Link href="/admin/classes"><i className="bi bi-mortarboard" /><span>班級管理</span></Link>
+          <Link href="/students"><i className="bi bi-people-fill" /><span>班級座號</span></Link>
           <Link href="/admin/maintenance"><i className="bi bi-tools" /><span>資料維護</span></Link>
         </>}
       </nav>

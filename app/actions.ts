@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { AUTH_COOKIE, createSessionToken, passwordHash } from "@/lib/auth";
-import { requireAccount, requireAdmin } from "@/lib/session";
+import { requireAccount } from "@/lib/session";
 import * as db from "@/lib/queries";
 import * as XLSX from "xlsx";
 
@@ -14,7 +14,8 @@ const i = (fd: FormData, k: string) => Math.trunc(Number(String(fd.get(k) ?? "")
 function revalidateAll() {
   revalidatePath("/");
   revalidatePath("/admin");
-  revalidatePath("/admin/accounts");
+  revalidatePath("/admin/classes");
+  revalidatePath("/admin/class-summary");
   revalidatePath("/admin/maintenance");
   revalidatePath("/students");
 }
@@ -28,23 +29,20 @@ function todayInTaipei() {
   }).format(new Date());
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ── Auth (single user) ────────────────────────────────────────────────────────
 
 export async function login(formData: FormData) {
-  const username = s(formData, "username");
-  const password = s(formData, "password");
-  const account = await db.getAccountByCode(username);
-  const initialClassPassword = account?.role === "class" && account.must_change_password && password.toLowerCase() === account.code.toLowerCase();
-  if (!account?.active || account.password_hash !== await passwordHash(password) && !initialClassPassword) redirect("/login?error=1");
+  const account = await db.getAccountByCode(s(formData, "username"));
+  if (!account || account.password_hash !== await passwordHash(s(formData, "password"))) redirect("/login?error=1");
   await db.touchLogin(account.id);
   const c = await cookies();
-  c.set(AUTH_COOKIE, await createSessionToken({ id: account.id, code: account.code, role: account.role, classId: account.class_id, mustChange: account.must_change_password }), {
+  c.set(AUTH_COOKIE, await createSessionToken({ id: account.id, code: account.code }), {
     httpOnly: true,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
   });
-  redirect(account.must_change_password ? "/password" : "/");
+  redirect("/");
 }
 
 export async function logout() {
@@ -53,76 +51,60 @@ export async function logout() {
   redirect("/");
 }
 
-// ── 作業未交登記（前台，免登入）────────────────────────────────────────────────
-
-// Log the checked seats as 未交 for a day + subject.
-export async function logRecords(formData: FormData) {
-  const date = s(formData, "date");
-  const subject = s(formData, "subject");
-  const seats = formData.getAll("seats").map((v) => Math.trunc(Number(v)));
-  if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date <= todayInTaipei() && subject) {
-    await db.addRecords(date, subject, seats);
-  }
-  revalidateAll();
-}
-
-export async function markLate(formData: FormData) {
-  await db.setRecordStatus(i(formData, "id"), "late");
-  revalidateAll();
-}
-
-export async function reopenRecord(formData: FormData) {
-  await db.setRecordStatus(i(formData, "id"), "open");
-  revalidateAll();
-}
-
-export async function removeRecord(formData: FormData) {
-  await db.deleteRecord(i(formData, "id"));
-  revalidateAll();
-  const date = s(formData, "date");
-  const subject = s(formData, "subject");
-  const seat = i(formData, "seat");
-  const status = s(formData, "status") === "late" ? "late" : "open";
-  if (date && subject && seat) {
-    const params = new URLSearchParams({ date, subject, deletedSeat: String(seat), deletedStatus: status });
-    redirect(`/?${params.toString()}`);
-  }
-}
-
 export async function changePassword(formData: FormData) {
-  const account = await requireAccount(true);
+  const account = await requireAccount();
   const password = s(formData, "password");
-  const confirm = s(formData, "confirm");
-  if (!password || password !== confirm) redirect("/password?error=1");
+  if (!password || password !== s(formData, "confirm")) redirect("/password?error=1");
   await db.updateAccountPassword(account.id, await passwordHash(password));
-  const c = await cookies();
-  c.set(AUTH_COOKIE, await createSessionToken({ id: account.id, code: account.code, role: account.role, classId: account.class_id, mustChange: false }), { httpOnly: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
   redirect("/");
 }
 
-export async function addClassAccount(formData: FormData) {
-  await requireAdmin();
-  const code = s(formData,"code").toLowerCase();
-  if (!/^[a-z0-9_-]{2,20}$/.test(code)) redirect("/admin/accounts?error=code");
-  try {
-    const result = await db.createClassAccount(code, Math.min(60,Math.max(1,i(formData,"seatCount"))), await passwordHash(code));
-    revalidateAll();
-    redirect(`/admin/accounts?${result === "created" ? "created=1" : "error=exists"}`);
-  } catch (error) {
-    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
-    redirect("/admin/accounts?error=database");
-  }
-}
-export async function toggleClassAccount(formData: FormData) { await requireAdmin(); await db.setAccountActive(i(formData,"id"), s(formData,"active") === "true"); revalidateAll(); }
-export async function resetClassPassword(formData: FormData) { await requireAdmin(); const account=await db.getAccountById(i(formData,"id")); if(account?.role==="class") await db.resetAccountPassword(account.id, await passwordHash(account.code)); revalidateAll(); }
-export async function adminDeleteClassAccount(formData:FormData){await requireAdmin();await db.deleteClassAccount(i(formData,"id"));revalidateAll();redirect("/admin/maintenance?deleted=account");}
-export async function adminDeleteMissingRecord(formData:FormData){await requireAdmin();await db.deleteAssignmentRecord(i(formData,"id"));revalidateAll();const params=new URLSearchParams({classId:s(formData,"classId"),date:s(formData,"date"),deleted:"record"});redirect(`/admin/maintenance?${params}`);}
-export async function upsertStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.saveStudent(classId,i(formData,"seat"),s(formData,"name")); revalidateAll(); }
-export async function removeStudent(formData: FormData) { const a=await requireAccount(); const classId=a.role==="admin"?i(formData,"classId"):(a.class_id??0); await db.deactivateStudent(i(formData,"id"),classId); revalidateAll(); }
+// ── 班級 ──────────────────────────────────────────────────────────────────────
 
+export async function addClass(formData: FormData) {
+  await requireAccount();
+  const name = s(formData, "name");
+  if (!name || name.length > 20) redirect("/admin/classes?error=name");
+  const result = await db.createClass(name, i(formData, "seatCount"));
+  revalidateAll();
+  redirect(`/admin/classes?${result === "created" ? "created=1" : "error=exists"}`);
+}
+
+export async function editClass(formData: FormData) {
+  await requireAccount();
+  const name = s(formData, "name");
+  if (!name || name.length > 20) redirect("/admin/classes?error=name");
+  const result = await db.updateClass(i(formData, "id"), name, i(formData, "seatCount"));
+  revalidateAll();
+  redirect(`/admin/classes?${result === "updated" ? "updated=1" : "error=exists"}`);
+}
+
+export async function removeClass(formData: FormData) {
+  await requireAccount();
+  await db.deleteClass(i(formData, "id"));
+  revalidateAll();
+  redirect("/admin/classes?deleted=1");
+}
+
+// ── 名冊（班級 + 座號）─────────────────────────────────────────────────────────
+
+export async function upsertStudent(formData: FormData) {
+  await requireAccount();
+  const classId = i(formData, "classId");
+  await db.saveStudent(classId, i(formData, "seat"));
+  revalidateAll();
+}
+
+export async function removeStudent(formData: FormData) {
+  await requireAccount();
+  await db.deactivateStudent(i(formData, "id"), i(formData, "classId"));
+  revalidateAll();
+}
+
+// Reads a single 座號 column — the roster keeps no names.
 export async function importStudentRoster(formData: FormData) {
-  const account = await requireAccount();
-  const classId = account.role === "admin" ? i(formData, "classId") : account.class_id ?? 0;
+  await requireAccount();
+  const classId = i(formData, "classId");
   const file = formData.get("file");
   const back = `/students?${new URLSearchParams({ classId: String(classId) }).toString()}`;
   if (!(file instanceof File) || !file.size || file.size > 2 * 1024 * 1024) redirect(`${back}&error=file`);
@@ -132,16 +114,14 @@ export async function importStudentRoster(formData: FormData) {
     if (!sheet) redirect(`${back}&error=sheet`);
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: "" });
     const headers = (rows[0] ?? []).map((value) => String(value).trim().toLowerCase());
-    const findColumn = (...names: string[]) => headers.findIndex((header) => names.includes(header));
-    const seatColumn = findColumn("座號", "seat");
-    const nameColumn = findColumn("姓名", "name");
+    const seatColumn = headers.findIndex((header) => ["座號", "seat"].includes(header));
     if (seatColumn < 0) redirect(`${back}&error=headers`);
-    const parsed = rows.slice(1).map((row) => ({
-      seat: Math.trunc(Number(String(row[seatColumn] ?? "").trim())),
-      name: nameColumn >= 0 ? String(row[nameColumn] ?? "").trim() : "",
-    })).filter((row) => row.seat || row.name);
+    const parsed = rows.slice(1)
+      .map((row) => Math.trunc(Number(String(row[seatColumn] ?? "").trim())))
+      .filter((seat) => Number.isFinite(seat) && seat !== 0);
     const seats = new Set<number>();
-    const valid = parsed.length > 0 && parsed.length <= 60 && parsed.every((row) => row.seat >= 1 && row.seat <= 60 && !seats.has(row.seat) && (seats.add(row.seat), true));
+    const valid = parsed.length > 0 && parsed.length <= db.MAX_SEAT
+      && parsed.every((seat) => seat >= 1 && seat <= db.MAX_SEAT && !seats.has(seat) && (seats.add(seat), true));
     if (!valid) redirect(`${back}&error=rows`);
     await db.replaceStudents(classId, parsed);
     revalidateAll();
@@ -152,72 +132,55 @@ export async function importStudentRoster(formData: FormData) {
   }
 }
 
-export async function undoDeleteRecord(formData: FormData) {
-  const date = s(formData, "date");
-  const subject = s(formData, "subject");
-  const seat = i(formData, "seat");
-  const status = s(formData, "status") === "late" ? "late" : "open";
-  await db.restoreRecord(date, subject, seat, status);
-  revalidateAll();
-  redirect(`/?${new URLSearchParams({ date, subject }).toString()}`);
-}
-
-export async function addClass(formData: FormData) {
-  await requireAdmin();
-  const name = s(formData, "name");
-  const seatCount = i(formData, "seatCount");
-  await db.createClass(name, seatCount);
-  revalidateAll();
-  redirect("/");
-}
+// ── 作業項目 ───────────────────────────────────────────────────────────────────
 
 export async function addAssignment(formData: FormData) {
-  const account = await requireAccount();
-  const classId = account.role === "admin" ? i(formData, "classId") : account.class_id ?? 0;
+  await requireAccount();
+  const classId = i(formData, "classId");
   const date = s(formData, "date");
-  const title = s(formData, "title");
-  const description = s(formData, "description");
-  if (date <= todayInTaipei()) await db.createAssignment(classId, date, title, description);
+  if (date <= todayInTaipei()) await db.createAssignment(classId, date, s(formData, "title"), s(formData, "description"));
   revalidateAll();
   redirect(`/?${new URLSearchParams({ classId: String(classId), date }).toString()}`);
 }
 
 export async function editAssignmentDescription(formData: FormData) {
-  const account = await requireAccount();
-  const assignmentId = i(formData, "assignmentId");
-  if (account.role !== "admin" && await db.getAssignmentClassId(assignmentId) !== account.class_id) return;
-  const description = s(formData, "description");
-  await db.updateAssignmentDescription(assignmentId, description);
+  await requireAccount();
+  await db.updateAssignmentDescription(i(formData, "assignmentId"), s(formData, "description"));
   revalidateAll();
 }
 
 export async function deleteAssignment(formData: FormData) {
-  const account = await requireAccount();
+  await requireAccount();
+  const classId = i(formData, "classId");
   const assignmentId = i(formData, "assignmentId");
-  const classId = account.role === "admin" ? i(formData, "classId") : account.class_id ?? 0;
   if (await db.getAssignmentClassId(assignmentId) !== classId) return;
   const date = s(formData, "date");
-  await db.deleteCustomAssignment(assignmentId);
+  await db.deleteAssignment(assignmentId);
   revalidateAll();
   redirect(`/?${new URLSearchParams({ classId: String(classId), date }).toString()}`);
 }
 
 export async function renameAssignment(formData: FormData) {
-  const account = await requireAccount();
+  await requireAccount();
+  const classId = i(formData, "classId");
   const assignmentId = i(formData, "assignmentId");
-  const classId = account.role === "admin" ? i(formData, "classId") : account.class_id ?? 0;
   if (await db.getAssignmentClassId(assignmentId) !== classId) return;
   const date = s(formData, "date");
-  await db.renameCustomAssignment(assignmentId, s(formData, "title"));
+  await db.renameAssignment(assignmentId, s(formData, "title"));
   revalidateAll();
   redirect(`/?${new URLSearchParams({ classId: String(classId), date, assignmentId: String(assignmentId) }).toString()}`);
 }
 
 export async function toggleAssignmentSeat(formData: FormData) {
-  const account = await requireAccount();
-  const assignmentId = i(formData, "assignmentId");
-  if (account.role !== "admin" && await db.getAssignmentClassId(assignmentId) !== account.class_id) return;
-  const seat = i(formData, "seat");
-  await db.toggleMissingSeat(assignmentId, seat);
+  await requireAccount();
+  await db.toggleMissingSeat(i(formData, "assignmentId"), i(formData, "seat"));
   revalidateAll();
+}
+
+export async function adminDeleteMissingRecord(formData: FormData) {
+  await requireAccount();
+  await db.deleteAssignmentRecord(i(formData, "id"));
+  revalidateAll();
+  const params = new URLSearchParams({ classId: s(formData, "classId"), date: s(formData, "date"), deleted: "record" });
+  redirect(`/admin/maintenance?${params}`);
 }

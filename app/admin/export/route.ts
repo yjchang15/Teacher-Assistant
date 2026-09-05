@@ -15,7 +15,7 @@ function todayInTaipei() {
 }
 
 export async function GET(req: NextRequest) {
-  const account = await requireAccount();
+  await requireAccount();
   const today = todayInTaipei();
   const startParam = req.nextUrl.searchParams.get("start") ?? "";
   const endParam = req.nextUrl.searchParams.get("end") ?? "";
@@ -26,19 +26,17 @@ export async function GET(req: NextRequest) {
   const start = rawStart <= rawEnd ? rawStart : rawEnd;
   const end = rawStart <= rawEnd ? rawEnd : rawStart;
   const classes = await getClasses();
-  const selectedClass = account.role === "admin"
-    ? classes.find((item) => item.id === Number(req.nextUrl.searchParams.get("classId"))) ?? classes[0]
-    : classes.find((item) => item.id === account.class_id);
+  const selectedClass = classes.find((item) => item.id === Number(req.nextUrl.searchParams.get("classId"))) ?? classes[0];
   const matrix = await getAssignmentMatrix(selectedClass?.id ?? 0, start, end, selectedClass?.seat_count ?? 32);
   const rows = matrix.rows.filter((row) => row.total > 0);
 
-  const header = ["座號", ...matrix.subjects, "未交合計"];
+  const header = ["座號", ...matrix.titles, "未交合計"];
   const body = rows.map((row) => [
     row.seat,
-    ...matrix.subjects.map((subject) => row.counts[subject] ?? 0),
+    ...matrix.titles.map((title) => row.counts[title] ?? 0),
     row.total,
   ]);
-  const footer = ["合計", ...matrix.subjects.map((subject) => matrix.colTotals[subject] ?? 0), matrix.grandTotal];
+  const footer = ["合計", ...matrix.titles.map((title) => matrix.colTotals[title] ?? 0), matrix.grandTotal];
   const worksheet = XLSX.utils.aoa_to_sheet([header, ...body, footer]);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "未交作業統計");
