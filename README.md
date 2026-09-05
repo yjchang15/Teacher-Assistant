@@ -10,7 +10,7 @@ A Next.js app scaffolded on the same tech stack as `etf-tracker`.
 | Language | TypeScript 5 (strict, `@/*` path alias) |
 | Styling | Tailwind CSS v4 + Bootstrap 5 (CDN) + Bootstrap Icons |
 | Data | Dual backend — `postgres` (Supabase) in prod, `@electric-sql/pglite` (WASM Postgres) for local dev; see `lib/db.ts` |
-| Auth | Single-password cookie session (`lib/auth.ts` + `proxy.ts`) |
+| Access | Single-user, no login required |
 | Tests | `node --test` + `tsx` |
 | Deploy | Vercel |
 
@@ -25,12 +25,10 @@ With no `DATABASE_URL`, the app uses a local PGlite file DB under `./.pglite`
 (auto-created, schema auto-applied). Set `DATABASE_URL` to a Supabase pooler URL
 to use Postgres. Copy `.env.example` → `.env.local` to configure.
 
-## Auth
+## Access
 
-The app has a **single user**. `APP_USERNAME` / `APP_PASSWORD` seed that account
-on first start; after that the password is changed in-app and lives in the
-database. Every route except `/login` is gated by `proxy.ts` (Next 16's
-middleware equivalent).
+The app is designed for one trusted user. It opens directly without a login or
+password, so deploy it only in an environment where access is already private.
 
 ## Scripts
 
@@ -41,10 +39,9 @@ middleware equivalent).
 ## Layout
 
 ```
-app/            routes (page.tsx, layout.tsx, login/, actions.ts)
+app/            routes (page.tsx, layout.tsx, actions.ts)
 components/     shared UI (Nav)
-lib/            db.ts (dual backend), queries.ts, auth.ts, schema.sql, pure helpers + tests
-proxy.ts        auth gate (Next 16 middleware)
+lib/            db.ts (dual backend), queries.ts, schema.sql, pure helpers + tests
 ```
 
 Extend the schema in `lib/schema.sql`, add queries in `lib/queries.ts`, and bump

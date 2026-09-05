@@ -23,22 +23,6 @@ export interface Assignment {
   description: string;
 }
 
-// The app has exactly one user. `code` is the login name, seeded from APP_USERNAME.
-export interface Account { id: number; code: string; display_name: string; password_hash: string; last_login_at: string; }
-
-// ── Account (single user) ─────────────────────────────────────────────────────
-
-export async function getAccountByCode(code: string): Promise<Account | null> {
-  const rows = await query<Account>("SELECT * FROM accounts WHERE lower(code)=lower($1) LIMIT 1", [code]);
-  return rows[0] ? num(rows[0], ["id"]) : null;
-}
-export async function getAccountById(id: number): Promise<Account | null> {
-  const rows = await query<Account>("SELECT * FROM accounts WHERE id=$1 LIMIT 1", [id]);
-  return rows[0] ? num(rows[0], ["id"]) : null;
-}
-export async function touchLogin(id: number) { await execute("UPDATE accounts SET last_login_at=$1 WHERE id=$2", [new Date().toISOString(), id]); }
-export async function updateAccountPassword(id: number, hash: string) { await execute("UPDATE accounts SET password_hash=$1 WHERE id=$2", [hash, id]); }
-
 // ── Classes ───────────────────────────────────────────────────────────────────
 
 export async function getClasses(): Promise<ClassRoom[]> {

@@ -1,5 +1,4 @@
 import { getClasses, getClassMissingSummary } from "@/lib/queries";
-import { requireAccount } from "@/lib/session";
 import AutoSubmitForm from "@/components/AutoSubmitForm";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +6,7 @@ const ISO_DATE=/^\d{4}-\d{2}-\d{2}$/;
 function todayInTaipei(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}
 
 export default async function ClassSummaryPage({searchParams}:{searchParams:Promise<{date?:string;classId?:string}>}){
-  await requireAccount(); const sp=await searchParams; const today=todayInTaipei();
+  const sp=await searchParams; const today=todayInTaipei();
   const date=ISO_DATE.test(sp.date??"")&&sp.date!<=today?sp.date!:today;
   const classes=await getClasses(); const classId=Number(sp.classId)||classes[0]?.id||0;
   const rows=await getClassMissingSummary(classId,date,date);

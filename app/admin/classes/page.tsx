@@ -1,12 +1,10 @@
 import { addClass, addClassSeat, editClass, removeClass, removeClassSeat } from "@/app/actions";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
 import { getClasses, nextSeat, DEFAULT_HEADCOUNT, MAX_SEAT } from "@/lib/queries";
-import { requireAccount } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClassesPage({ searchParams }: { searchParams: Promise<{ created?: string; updated?: string; deleted?: string; error?: string }> }) {
-  await requireAccount();
   const sp = await searchParams;
   const classes = await getClasses();
 

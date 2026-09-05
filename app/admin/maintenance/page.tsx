@@ -2,14 +2,13 @@ import { adminDeleteMissingRecord } from "@/app/actions";
 import AutoSubmitForm from "@/components/AutoSubmitForm";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
 import { getClasses, getMaintenanceMissingRecords } from "@/lib/queries";
-import { requireAccount } from "@/lib/session";
 
 export const dynamic="force-dynamic";
 const ISO_DATE=/^\d{4}-\d{2}-\d{2}$/;
 function todayInTaipei(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}
 
 export default async function MaintenancePage({searchParams}:{searchParams:Promise<{classId?:string;date?:string;deleted?:string}>}){
-  await requireAccount();const sp=await searchParams;const today=todayInTaipei();const date=ISO_DATE.test(sp.date??"")&&sp.date!<=today?sp.date!:today;
+  const sp=await searchParams;const today=todayInTaipei();const date=ISO_DATE.test(sp.date??"")&&sp.date!<=today?sp.date!:today;
   const classes=await getClasses();const classId=Number(sp.classId)||classes[0]?.id||0;const selectedClass=classes.find(c=>c.id===classId);
   const records=await getMaintenanceMissingRecords(classId,date);
   return <main><header className="mb-4"><h1 className="h3 fw-bold mb-1">資料維護</h1><p className="text-body-secondary mb-0">刪除單筆缺交紀錄。刪除後無法復原。</p></header>

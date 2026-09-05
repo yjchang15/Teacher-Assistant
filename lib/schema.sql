@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
     value TEXT DEFAULT ''
 );
 
--- 唯一使用者。第一次啟動時以 APP_USERNAME / APP_PASSWORD 建立，之後可站內改密碼。
+-- 舊版登入資料表，僅為相容既有資料庫而保留；應用不再讀寫此表。
 CREATE TABLE IF NOT EXISTS accounts (
     id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     code          TEXT NOT NULL UNIQUE,

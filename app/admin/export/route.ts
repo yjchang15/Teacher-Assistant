@@ -1,7 +1,6 @@
 import { type NextRequest } from "next/server";
 import * as XLSX from "xlsx";
 import { getAssignmentMatrix, getClasses } from "@/lib/queries";
-import { requireAccount } from "@/lib/session";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -15,7 +14,6 @@ function todayInTaipei() {
 }
 
 export async function GET(req: NextRequest) {
-  await requireAccount();
   const today = todayInTaipei();
   const startParam = req.nextUrl.searchParams.get("start") ?? "";
   const endParam = req.nextUrl.searchParams.get("end") ?? "";

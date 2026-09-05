@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { getClasses, getMissingDetails } from "@/lib/queries";
-import { requireAccount } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 const ISO_DATE=/^\d{4}-\d{2}-\d{2}$/;
 function todayInTaipei(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());}
 
 export default async function AdminPage({searchParams}:{searchParams:Promise<{start?:string;end?:string;classId?:string;seat?:string}>}){
-  await requireAccount(); const sp=await searchParams; const today=todayInTaipei();
+  const sp=await searchParams; const today=todayInTaipei();
   const start=ISO_DATE.test(sp.start??"")&&sp.start!<=today?sp.start!:today; const end=ISO_DATE.test(sp.end??"")&&sp.end!<=today?sp.end!:today;
   const classes=await getClasses(); const classId=Number(sp.classId)||classes[0]?.id||0;
   const className=classes.find(c=>c.id===classId)?.name??"";

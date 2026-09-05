@@ -3,7 +3,6 @@ import { addAssignment, deleteAssignment, editAssignmentDescription, renameAssig
 import AssignmentWorkspaceSelector, { RegistrationContextSelector } from "@/components/AssignmentWorkspaceSelector";
 import DoubleClickSeatGrid from "@/components/DoubleClickSeatGrid";
 import AssignmentDescriptionEditor from "@/components/AssignmentDescriptionEditor";
-import { requireAccount } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +16,6 @@ export default async function LogPage({
   searchParams: Promise<{ date?: string; classId?: string; assignmentId?: string }>;
 }) {
   const sp = await searchParams;
-  await requireAccount();
   const today = todayInTaipei();
   const requestedDate = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : today;
   const date = requestedDate <= today ? requestedDate : today;

@@ -1,7 +1,6 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { APP_PASSWORD, APP_USERNAME, passwordHash } from "./auth";
 
 // ── Backend selection ─────────────────────────────────────────────────────────
 // DATABASE_URL set  → PostgreSQL (Supabase) via the `postgres` driver.
@@ -253,15 +252,6 @@ async function runInit(): Promise<void> {
   // `assignments` row the teacher created.
   await be.query("DROP TABLE IF EXISTS records", []);
   await be.query("DROP TABLE IF EXISTS subjects", []);
-
-  // Bootstrap the single user. An existing row keeps the password it already
-  // has — APP_PASSWORD only seeds the very first login.
-  const now = new Date().toISOString();
-  await be.query(
-    "INSERT INTO accounts(code,display_name,password_hash,last_login_at,created_at)" +
-      " VALUES($1,'教師',$2,'',$3) ON CONFLICT(code) DO NOTHING",
-    [APP_USERNAME, await passwordHash(APP_PASSWORD), now],
-  );
 
   // Mark this schema version as applied so later cold instances take the fast
   // path above instead of re-running the whole init.
