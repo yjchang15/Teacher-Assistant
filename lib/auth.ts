@@ -3,7 +3,7 @@ export const APP_USERNAME = process.env.APP_USERNAME || "admin";
 export const APP_PASSWORD = process.env.APP_PASSWORD || "change-me";
 const SECRET_KEY = process.env.SECRET_KEY || "dev-insecure-key-change-me";
 
-export type SessionPayload = { id: number; code: string; role: "admin" | "class"; classId: number | null; mustChange: boolean };
+export type SessionPayload = { id: number; code: string };
 
 function bytesToHex(bytes: Uint8Array) { return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join(""); }
 function base64url(value: string) {

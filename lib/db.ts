@@ -171,7 +171,7 @@ export async function tx(statements: [string, unknown[]][]): Promise<void> {
 // Bump whenever schema.sql or the ALTER migrations below change, so existing
 // databases re-run the full init once. Between bumps, a cold instance skips the
 // schema round trips after a single cheap marker check.
-const SCHEMA_VERSION = "2026-07-19-numbered-default-assignments";
+const SCHEMA_VERSION = "2026-09-05-single-user-no-subjects";
 
 async function runInit(): Promise<void> {
   const be = await getBackend();
@@ -193,40 +193,49 @@ async function runInit(): Promise<void> {
     if (stmt.trim()) await be.query(stmt, []);
   }
 
-  // Idempotent migration: 學號 is no longer used — drop the column (this also
-  // drops its UNIQUE constraint). Safe no-op once the column is gone.
-  await be.query("ALTER TABLE students DROP COLUMN IF EXISTS student_number", []);
+  // Idempotent migrations off the old multi-account / 科別 model.
 
-  // Rename the original unnumbered defaults without losing missing records.
-  // If a numbered target already exists, merge its records before removing the
-  // old assignment; otherwise rename the old row in place.
-  const assignmentRenames = [
-    ["國文", "國文1"], ["英文", "英文1"], ["數學", "數學1"], ["自然", "理化1"],
-    ["地理", "地理1"], ["歷史", "歷史1"], ["公民", "公民1"],
-  ];
-  for (const [oldTitle, newTitle] of assignmentRenames) {
+  // 學號 and 姓名 are no longer kept — a roster row is just 班級 + 座號.
+  await be.query("ALTER TABLE students DROP COLUMN IF EXISTS student_number", []);
+  await be.query("ALTER TABLE students DROP COLUMN IF EXISTS name", []);
+
+  // A class used to be named after the account linked to it. Carry that label
+  // onto the class itself before the link column goes away, so existing classes
+  // keep the name the teacher already knows them by.
+  try {
     await be.query(
-      "INSERT INTO assignment_records(assignment_id,seat,created_at)" +
-        " SELECT target.id,ar.seat,ar.created_at FROM assignments old" +
-        " JOIN assignments target ON target.class_id=old.class_id AND target.date=old.date AND target.title=$2" +
-        " JOIN assignment_records ar ON ar.assignment_id=old.id WHERE old.title=$1" +
-        " ON CONFLICT(assignment_id,seat) DO NOTHING",
-      [oldTitle, newTitle],
+      "UPDATE classes c SET name=a.display_name FROM accounts a" +
+        " WHERE a.class_id=c.id AND a.display_name<>'' AND a.display_name<>c.name" +
+        " AND NOT EXISTS (SELECT 1 FROM classes other WHERE other.name=a.display_name AND other.id<>c.id)",
+      [],
     );
-    await be.query(
-      "DELETE FROM assignments old USING assignments target" +
-        " WHERE old.title=$1 AND target.title=$2 AND target.class_id=old.class_id AND target.date=old.date AND target.id<>old.id",
-      [oldTitle, newTitle],
-    );
-    await be.query("UPDATE assignments SET title=$2 WHERE title=$1", [oldTitle, newTitle]);
+  } catch {
+    // accounts.class_id is already gone — nothing to carry over.
   }
 
-  // Bootstrap only the admin account. No 預設班級 / default class account is
-  // seeded — the admin creates class accounts on demand (each makes its class).
+  // Single user from here on: drop every class account, then the columns that
+  // only existed to tell accounts apart. Dropping class_id also drops its FK
+  // and UNIQUE constraint.
+  try {
+    await be.query("DELETE FROM accounts WHERE role<>'admin'", []);
+  } catch {
+    // role is already gone — only the single user remains.
+  }
+  for (const column of ["role", "class_id", "must_change_password", "active"]) {
+    await be.query(`ALTER TABLE accounts DROP COLUMN IF EXISTS ${column}`, []);
+  }
+
+  // The 科別 matrix model is gone — every 作業項目 is now a free-form
+  // `assignments` row the teacher created.
+  await be.query("DROP TABLE IF EXISTS records", []);
+  await be.query("DROP TABLE IF EXISTS subjects", []);
+
+  // Bootstrap the single user. An existing row keeps the password it already
+  // has — APP_PASSWORD only seeds the very first login.
   const now = new Date().toISOString();
   await be.query(
-    "INSERT INTO accounts(code,display_name,role,class_id,password_hash,must_change_password,active,created_at)" +
-      " VALUES($1,'系統管理員','admin',NULL,$2,FALSE,TRUE,$3) ON CONFLICT(code) DO NOTHING",
+    "INSERT INTO accounts(code,display_name,password_hash,last_login_at,created_at)" +
+      " VALUES($1,'教師',$2,'',$3) ON CONFLICT(code) DO NOTHING",
     [APP_USERNAME, await passwordHash(APP_PASSWORD), now],
   );
 

@@ -30,7 +30,7 @@ export default function AssignmentWorkspaceSelector({ date, classId, assignmentI
   date: string;
   classId: number;
   assignmentId: number;
-  assignments: { id: number; title: string; canDelete: boolean }[];
+  assignments: { id: number; title: string }[];
   addControl?: ReactNode;
   deleteAction: (formData: FormData) => void | Promise<void>;
   renameAction: (formData: FormData) => void | Promise<void>;
@@ -45,18 +45,18 @@ export default function AssignmentWorkspaceSelector({ date, classId, assignmentI
             <input id={`assignment-${item.id}`} type="radio" name="assignmentId" value={item.id} defaultChecked={item.id === assignmentId} onChange={(event) => { setApplying(true); event.currentTarget.form?.requestSubmit(); }} />
             <label htmlFor={`assignment-${item.id}`}>{item.title}<i className="bi bi-check-circle-fill" /></label>
           </form>
-          {item.canDelete && <form action={renameAction} className="assignment-edit-form" onSubmit={(event) => {
+          <form action={renameAction} className="assignment-edit-form" onSubmit={(event) => {
             const title = window.prompt("修改項目名稱", item.title)?.trim();
             if (!title || title === item.title) { event.preventDefault(); return; }
             (event.currentTarget.elements.namedItem("title") as HTMLInputElement).value = title;
           }}>
             <input type="hidden" name="assignmentId" value={item.id} /><input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} /><input type="hidden" name="title" />
             <button type="submit" aria-label={`編輯 ${item.title}`} title="修改名稱"><i className="bi bi-pencil" /></button>
-          </form>}
-          {item.canDelete && <form action={deleteAction} className="assignment-delete-form" onSubmit={(event) => { if (!window.confirm(`確定刪除「${item.title}」及其缺交紀錄？`)) event.preventDefault(); }}>
+          </form>
+          <form action={deleteAction} className="assignment-delete-form" onSubmit={(event) => { if (!window.confirm(`確定刪除「${item.title}」及其缺交紀錄？`)) event.preventDefault(); }}>
             <input type="hidden" name="assignmentId" value={item.id} /><input type="hidden" name="classId" value={classId} /><input type="hidden" name="date" value={date} />
             <button type="submit" aria-label={`刪除 ${item.title}`} title="刪除項目"><i className="bi bi-trash3" /></button>
-          </form>}
+          </form>
         </div>)}
         {addControl}
       </div>}

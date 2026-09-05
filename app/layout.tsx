@@ -46,7 +46,7 @@ export default async function RootLayout({
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
       </head>
       <body>
-        <Nav account={account ? { code: account.code, displayName: account.display_name, role: account.role } : null} />
+        <Nav account={account ? { code: account.code, displayName: account.display_name } : null} />
         <div className="app-content">
           {children}
         </div>

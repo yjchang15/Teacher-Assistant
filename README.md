@@ -27,8 +27,10 @@ to use Postgres. Copy `.env.example` → `.env.local` to configure.
 
 ## Auth
 
-Auth is **off** until `APP_PASSWORD` is set. Once set, every route except
-`/login` is gated by `proxy.ts` (Next 16's middleware equivalent).
+The app has a **single user**. `APP_USERNAME` / `APP_PASSWORD` seed that account
+on first start; after that the password is changed in-app and lives in the
+database. Every route except `/login` is gated by `proxy.ts` (Next 16's
+middleware equivalent).
 
 ## Scripts
 
@@ -46,5 +48,15 @@ proxy.ts        auth gate (Next 16 middleware)
 ```
 
 Extend the schema in `lib/schema.sql`, add queries in `lib/queries.ts`, and bump
-`SCHEMA_VERSION` in `lib/db.ts` when the schema changes. The `notes` table is a
-placeholder example — replace it with your own domain tables.
+`SCHEMA_VERSION` in `lib/db.ts` when the schema changes — `runInit()` re-runs the
+idempotent migrations once per bump.
+
+## Domain model
+
+- **班級** (`classes`) — created in 班級管理. `seat_count` is the seat range the
+  registration grid falls back to.
+- **班級座號** (`students`) — a roster row is only 班級 + 座號; no names are kept.
+  When a class has no roster, the grid shows 1..`seat_count`.
+- **作業項目** (`assignments`) — every item is created by the teacher via 新增項目.
+  Nothing is seeded, so all items can be renamed and deleted.
+- **缺交紀錄** (`assignment_records`) — one row per 作業項目 × 座號.
