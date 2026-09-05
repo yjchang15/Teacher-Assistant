@@ -1,17 +1,26 @@
 import "server-only";
-import { query, execute, scalar, tx } from "./db";
+import { query, execute, scalar } from "./db";
 
-// A class defaults to seats 1..DEFAULT_SEAT_COUNT until its roster says otherwise.
-export const DEFAULT_SEAT_COUNT = 32;
+// A class is just a 座號 range: seat_start..seat_end.
+export const DEFAULT_SEAT_START = 1;
+export const DEFAULT_SEAT_END = 32;
 export const MAX_SEAT = 60;
 
-const clampSeatCount = (value: number) =>
-  Math.min(MAX_SEAT, Math.max(1, Math.trunc(value) || DEFAULT_SEAT_COUNT));
+const clampSeat = (value: number, fallback: number) =>
+  Math.min(MAX_SEAT, Math.max(1, Math.trunc(value) || fallback));
+
+// Keeps the range the right way round, so a swapped start/end still works.
+function seatRange(start: number, end: number): [number, number] {
+  const a = clampSeat(start, DEFAULT_SEAT_START);
+  const b = clampSeat(end, DEFAULT_SEAT_END);
+  return a <= b ? [a, b] : [b, a];
+}
 
 export interface ClassRoom {
   id: number;
   name: string;
-  seat_count: number;
+  seat_start: number;
+  seat_end: number;
 }
 
 export interface Assignment {
@@ -24,9 +33,6 @@ export interface Assignment {
 
 // The app has exactly one user. `code` is the login name, seeded from APP_USERNAME.
 export interface Account { id: number; code: string; display_name: string; password_hash: string; last_login_at: string; }
-
-// A roster row is only 班級 + 座號 — no names are kept.
-export interface Student { id: number; class_id: number; seat: number; active: boolean; }
 
 // ── Account (single user) ─────────────────────────────────────────────────────
 
@@ -44,58 +50,37 @@ export async function updateAccountPassword(id: number, hash: string) { await ex
 // ── Classes ───────────────────────────────────────────────────────────────────
 
 export async function getClasses(): Promise<ClassRoom[]> {
-  const rows = await query<ClassRoom>("SELECT id,name,seat_count FROM classes ORDER BY name,id");
-  return rows.map((row) => num(row, ["id", "seat_count"]));
+  const rows = await query<ClassRoom>("SELECT id,name,seat_start,seat_end FROM classes ORDER BY name,id");
+  return rows.map((row) => num(row, ["id", "seat_start", "seat_end"]));
 }
 
-export async function createClass(name: string, seatCount: number): Promise<"created" | "exists"> {
+export async function createClass(name: string, start: number, end: number): Promise<"created" | "exists"> {
   if (!name) return "exists";
+  const [seatStart, seatEnd] = seatRange(start, end);
   const rows = await query<{ id: number }>(
-    "INSERT INTO classes (name,seat_count,created_at) VALUES ($1,$2,$3) ON CONFLICT(name) DO NOTHING RETURNING id",
-    [name, clampSeatCount(seatCount), new Date().toISOString()],
+    "INSERT INTO classes (name,seat_start,seat_end,created_at) VALUES ($1,$2,$3,$4) ON CONFLICT(name) DO NOTHING RETURNING id",
+    [name, seatStart, seatEnd, new Date().toISOString()],
   );
   return rows.length ? "created" : "exists";
 }
 
 // Rejected (rather than throwing on the UNIQUE index) when another class
 // already holds the name.
-export async function updateClass(id: number, name: string, seatCount: number): Promise<"updated" | "exists"> {
+export async function updateClass(id: number, name: string, start: number, end: number): Promise<"updated" | "exists"> {
   if (!id || !name) return "exists";
+  const [seatStart, seatEnd] = seatRange(start, end);
   const rows = await query<{ id: number }>(
-    "UPDATE classes SET name=$1,seat_count=$2 WHERE id=$3" +
-      " AND NOT EXISTS (SELECT 1 FROM classes other WHERE other.name=$1 AND other.id<>$3) RETURNING id",
-    [name, clampSeatCount(seatCount), id],
+    "UPDATE classes SET name=$1,seat_start=$2,seat_end=$3 WHERE id=$4" +
+      " AND NOT EXISTS (SELECT 1 FROM classes other WHERE other.name=$1 AND other.id<>$4) RETURNING id",
+    [name, seatStart, seatEnd, id],
   );
   return rows.length ? "updated" : "exists";
 }
 
-// Cascades to assignments → assignment_records and to the roster.
+// Cascades to assignments → assignment_records.
 export async function deleteClass(id: number): Promise<void> {
   if (id) await execute("DELETE FROM classes WHERE id=$1", [id]);
 }
-
-// ── Roster (班級 + 座號) ───────────────────────────────────────────────────────
-
-export async function getStudents(classId: number): Promise<Student[]> {
-  if (!classId) return [];
-  return (await query<Student>("SELECT id,class_id,seat,active FROM students WHERE class_id=$1 ORDER BY seat", [classId])).map((r) => num(r, ["id", "class_id", "seat"]));
-}
-export async function saveStudent(classId: number, seat: number) {
-  if (!classId || seat < 1 || seat > MAX_SEAT) return;
-  await execute("INSERT INTO students(class_id,seat,active,created_at) VALUES($1,$2,TRUE,$3) ON CONFLICT(class_id,seat) DO UPDATE SET active=TRUE", [classId, seat, new Date().toISOString()]);
-}
-export async function replaceStudents(classId: number, seats: number[]) {
-  if (!classId || !seats.length) return;
-  const now = new Date().toISOString();
-  await tx([
-    ["DELETE FROM students WHERE class_id=$1", [classId]],
-    ...seats.map((seat): [string, unknown[]] => [
-      "INSERT INTO students(class_id,seat,active,created_at) VALUES($1,$2,TRUE,$3)",
-      [classId, seat, now],
-    ]),
-  ]);
-}
-export async function deactivateStudent(id: number, classId: number) { await execute("UPDATE students SET active=FALSE WHERE id=$1 AND class_id=$2", [id, classId]); }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 
@@ -223,7 +208,7 @@ export interface Matrix {
   grandTotal: number;
 }
 
-export async function getAssignmentMatrix(classId: number, start: string, end: string, seatCount: number): Promise<Matrix> {
+export async function getAssignmentMatrix(classId: number, start: string, end: string, seatStart: number, seatEnd: number): Promise<Matrix> {
   if (!classId) return { titles: [], rows: [], colTotals: {}, grandTotal: 0 };
   const params: unknown[] = [classId];
   let dateWhere = "class_id=$1";
@@ -241,7 +226,7 @@ export async function getAssignmentMatrix(classId: number, start: string, end: s
   const rows: MatrixRow[] = [];
   const colTotals: Record<string, number> = Object.fromEntries(titles.map((title) => [title, 0]));
   let grandTotal = 0;
-  for (let seat = 1; seat <= seatCount; seat++) {
+  for (let seat = seatStart; seat <= seatEnd; seat++) {
     const counts: Record<string, number> = Object.fromEntries(titles.map((title) => [title, 0]));
     let total = 0;
     for (const row of raw) {
