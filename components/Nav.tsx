@@ -18,7 +18,7 @@ export default function Nav({ account }: { account: { code: string; displayName:
           <Link href="/admin"><i className="bi bi-person-lines-fill" /><span>個人缺交列表</span></Link>
           <Link href="/admin/class-summary"><i className="bi bi-table" /><span>全班缺交總表</span></Link>
           <span className="sidebar-label">設定</span>
-          <Link href="/admin/classes"><i className="bi bi-mortarboard" /><span>班級管理</span></Link>
+          <Link href="/admin/classes"><i className="bi bi-mortarboard" /><span>班級維護</span></Link>
           <Link href="/admin/maintenance"><i className="bi bi-tools" /><span>資料維護</span></Link>
         </>}
       </nav>

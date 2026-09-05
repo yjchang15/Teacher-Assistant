@@ -20,14 +20,23 @@ CREATE TABLE IF NOT EXISTS accounts (
     created_at    TEXT DEFAULT ''
 );
 
--- 班級。name 由使用者自訂（例如 701），座號就是 seat_start 到 seat_end 的範圍。
+-- 班級。name 由使用者自訂（例如 701）。
 CREATE TABLE IF NOT EXISTS classes (
     id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name       TEXT NOT NULL UNIQUE,
-    seat_start INTEGER NOT NULL DEFAULT 1,
-    seat_end   INTEGER NOT NULL DEFAULT 32,
     created_at TEXT DEFAULT ''
 );
+
+-- 班級座號。新增班級時依「人數」自動展開成 1..N，之後可逐一增刪。
+CREATE TABLE IF NOT EXISTS class_seats (
+    id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    class_id   bigint NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    seat       INTEGER NOT NULL,
+    created_at TEXT DEFAULT '',
+    UNIQUE (class_id, seat)
+);
+
+CREATE INDEX IF NOT EXISTS class_seats_class ON class_seats (class_id, seat);
 
 -- 作業項目。全部由使用者自行新增，沒有預設科別。
 CREATE TABLE IF NOT EXISTS assignments (

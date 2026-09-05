@@ -53,9 +53,10 @@ idempotent migrations once per bump.
 
 ## Domain model
 
-- **班級** (`classes`) — created in 班級管理. 座號 is just a range:
-  `seat_start`..`seat_end`, and the registration grid shows exactly that range.
-  There is no per-student roster and no names.
+- **班級** (`classes`) — created in 班級維護 with a name and a 人數.
+- **座號** (`class_seats`) — one row per seat. 人數 N expands into seats 1..N on
+  creation; after that `+` appends the next number and `×` removes one. No
+  student names are kept anywhere.
 - **作業項目** (`assignments`) — every item is created by the teacher via 新增項目.
   Nothing is seeded, so all items can be renamed and deleted.
 - **缺交紀錄** (`assignment_records`) — one row per 作業項目 × 座號.

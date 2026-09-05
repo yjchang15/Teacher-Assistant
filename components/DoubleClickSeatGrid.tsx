@@ -4,14 +4,12 @@ import { useState } from "react";
 
 export default function DoubleClickSeatGrid({
   assignmentId,
-  seatStart,
-  seatEnd,
+  seats,
   missingSeats,
   action,
 }: {
   assignmentId: number;
-  seatStart: number;
-  seatEnd: number;
+  seats: number[];
   missingSeats: number[];
   action: (formData: FormData) => Promise<void>;
 }) {
@@ -42,11 +40,9 @@ export default function DoubleClickSeatGrid({
     }
   }
 
-  const shown = Array.from({ length: Math.max(0, seatEnd - seatStart + 1) }, (_, index) => seatStart + index);
-
   return (
     <div className="double-click-seat-grid" role="group" aria-label="學生座號">
-      {shown.map((seat) => {
+      {seats.map((seat) => {
         const isMissing = missing.has(seat);
         return <button key={seat} type="button" className={`double-click-seat ${isMissing ? "is-missing" : ""}`} onClick={() => toggle(seat)} disabled={pending === seat} title={isMissing ? "點一下取消缺交" : "點一下標記缺交"}>
           <strong>{seat}</strong><span>{isMissing ? "缺交" : ""}</span>

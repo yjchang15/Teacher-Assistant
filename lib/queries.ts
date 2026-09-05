@@ -1,26 +1,18 @@
 import "server-only";
-import { query, execute, scalar } from "./db";
+import { query, execute, scalar, tx } from "./db";
 
-// A class is just a 座號 range: seat_start..seat_end.
-export const DEFAULT_SEAT_START = 1;
-export const DEFAULT_SEAT_END = 32;
+// 人數 expands into seats 1..N when a class is created; after that the seats
+// are edited one at a time.
+export const DEFAULT_HEADCOUNT = 32;
 export const MAX_SEAT = 60;
 
-const clampSeat = (value: number, fallback: number) =>
-  Math.min(MAX_SEAT, Math.max(1, Math.trunc(value) || fallback));
-
-// Keeps the range the right way round, so a swapped start/end still works.
-function seatRange(start: number, end: number): [number, number] {
-  const a = clampSeat(start, DEFAULT_SEAT_START);
-  const b = clampSeat(end, DEFAULT_SEAT_END);
-  return a <= b ? [a, b] : [b, a];
-}
+const clampHeadcount = (value: number) =>
+  Math.min(MAX_SEAT, Math.max(1, Math.trunc(value) || DEFAULT_HEADCOUNT));
 
 export interface ClassRoom {
   id: number;
   name: string;
-  seat_start: number;
-  seat_end: number;
+  seats: number[];
 }
 
 export interface Assignment {
@@ -50,36 +42,75 @@ export async function updateAccountPassword(id: number, hash: string) { await ex
 // ── Classes ───────────────────────────────────────────────────────────────────
 
 export async function getClasses(): Promise<ClassRoom[]> {
-  const rows = await query<ClassRoom>("SELECT id,name,seat_start,seat_end FROM classes ORDER BY name,id");
-  return rows.map((row) => num(row, ["id", "seat_start", "seat_end"]));
+  const rows = await query<{ id: number; name: string }>("SELECT id,name FROM classes ORDER BY name,id");
+  const seats = await query<{ class_id: number; seat: number }>("SELECT class_id,seat FROM class_seats ORDER BY seat");
+  const bySeat = new Map<number, number[]>();
+  for (const row of seats) {
+    const classId = Number(row.class_id);
+    const list = bySeat.get(classId) ?? [];
+    list.push(Number(row.seat));
+    bySeat.set(classId, list);
+  }
+  return rows.map((row) => ({ id: Number(row.id), name: row.name, seats: bySeat.get(Number(row.id)) ?? [] }));
 }
 
-export async function createClass(name: string, start: number, end: number): Promise<"created" | "exists"> {
+export async function getSeats(classId: number): Promise<number[]> {
+  if (!classId) return [];
+  const rows = await query<{ seat: number }>("SELECT seat FROM class_seats WHERE class_id=$1 ORDER BY seat", [classId]);
+  return rows.map((row) => Number(row.seat));
+}
+
+// 人數 N expands straight into seats 1..N.
+export async function createClass(name: string, headcount: number): Promise<"created" | "exists"> {
   if (!name) return "exists";
-  const [seatStart, seatEnd] = seatRange(start, end);
   const rows = await query<{ id: number }>(
-    "INSERT INTO classes (name,seat_start,seat_end,created_at) VALUES ($1,$2,$3,$4) ON CONFLICT(name) DO NOTHING RETURNING id",
-    [name, seatStart, seatEnd, new Date().toISOString()],
+    "INSERT INTO classes (name,created_at) VALUES ($1,$2) ON CONFLICT(name) DO NOTHING RETURNING id",
+    [name, new Date().toISOString()],
   );
-  return rows.length ? "created" : "exists";
+  if (!rows.length) return "exists";
+  const classId = Number(rows[0].id);
+  const now = new Date().toISOString();
+  await tx(Array.from({ length: clampHeadcount(headcount) }, (_, index): [string, unknown[]] => [
+    "INSERT INTO class_seats (class_id,seat,created_at) VALUES ($1,$2,$3) ON CONFLICT (class_id,seat) DO NOTHING",
+    [classId, index + 1, now],
+  ]));
+  return "created";
 }
 
 // Rejected (rather than throwing on the UNIQUE index) when another class
 // already holds the name.
-export async function updateClass(id: number, name: string, start: number, end: number): Promise<"updated" | "exists"> {
+export async function renameClass(id: number, name: string): Promise<"updated" | "exists"> {
   if (!id || !name) return "exists";
-  const [seatStart, seatEnd] = seatRange(start, end);
   const rows = await query<{ id: number }>(
-    "UPDATE classes SET name=$1,seat_start=$2,seat_end=$3 WHERE id=$4" +
-      " AND NOT EXISTS (SELECT 1 FROM classes other WHERE other.name=$1 AND other.id<>$4) RETURNING id",
-    [name, seatStart, seatEnd, id],
+    "UPDATE classes SET name=$1 WHERE id=$2" +
+      " AND NOT EXISTS (SELECT 1 FROM classes other WHERE other.name=$1 AND other.id<>$2) RETURNING id",
+    [name, id],
   );
   return rows.length ? "updated" : "exists";
 }
 
-// Cascades to assignments → assignment_records.
+// Cascades to class_seats and to assignments → assignment_records.
 export async function deleteClass(id: number): Promise<void> {
   if (id) await execute("DELETE FROM classes WHERE id=$1", [id]);
+}
+
+// The `+` tile: append the next number after the class's highest seat.
+export async function addSeat(classId: number): Promise<void> {
+  if (!classId) return;
+  const highest = Number(await scalar<number>("SELECT COALESCE(MAX(seat),0) FROM class_seats WHERE class_id=$1", [classId]));
+  const seat = highest + 1;
+  if (seat > MAX_SEAT) return;
+  await execute(
+    "INSERT INTO class_seats (class_id,seat,created_at) VALUES ($1,$2,$3) ON CONFLICT (class_id,seat) DO NOTHING",
+    [classId, seat, new Date().toISOString()],
+  );
+}
+
+// Removing a seat only takes it off the grid — any 缺交紀錄 already logged
+// against that number is left alone.
+export async function deleteSeat(classId: number, seat: number): Promise<void> {
+  if (!classId || !seat) return;
+  await execute("DELETE FROM class_seats WHERE class_id=$1 AND seat=$2", [classId, seat]);
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
@@ -208,7 +239,7 @@ export interface Matrix {
   grandTotal: number;
 }
 
-export async function getAssignmentMatrix(classId: number, start: string, end: string, seatStart: number, seatEnd: number): Promise<Matrix> {
+export async function getAssignmentMatrix(classId: number, start: string, end: string, seats: number[]): Promise<Matrix> {
   if (!classId) return { titles: [], rows: [], colTotals: {}, grandTotal: 0 };
   const params: unknown[] = [classId];
   let dateWhere = "class_id=$1";
@@ -226,7 +257,7 @@ export async function getAssignmentMatrix(classId: number, start: string, end: s
   const rows: MatrixRow[] = [];
   const colTotals: Record<string, number> = Object.fromEntries(titles.map((title) => [title, 0]));
   let grandTotal = 0;
-  for (let seat = seatStart; seat <= seatEnd; seat++) {
+  for (const seat of seats) {
     const counts: Record<string, number> = Object.fromEntries(titles.map((title) => [title, 0]));
     let total = 0;
     for (const row of raw) {
