@@ -187,8 +187,13 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .seat-chip-del { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid var(--bs-border-color); border-radius: 50%; color: var(--bs-secondary-color); font-size: .8rem; line-height: 1; background: var(--bs-tertiary-bg); opacity: 0; transition: opacity .12s ease; }
 .seat-chip:hover .seat-chip-del, .seat-chip-del:focus-visible { opacity: 1; }
 .seat-chip-del:hover { color: white; border-color: var(--bs-danger); background: var(--bs-danger); }
-.seat-chip-add { color: var(--bs-primary); border-style: dashed; cursor: pointer; }
-.seat-chip-add:hover { color: white; border-style: solid; background: var(--bs-primary); }
+.seat-chip-add { display: flex; width: auto; padding: 0 3px 0 1px; border-style: dashed; gap: 1px; }
+.seat-chip-add:focus-within { border-color: var(--bs-primary); border-style: solid; }
+.seat-chip-number { width: 44px; padding: 2px; border: 0; border-radius: 6px; color: var(--bs-body-color); font-size: 1.1rem; font-weight: 700; text-align: center; background: transparent; appearance: textfield; -moz-appearance: textfield; }
+.seat-chip-number::-webkit-outer-spin-button, .seat-chip-number::-webkit-inner-spin-button { margin: 0; -webkit-appearance: none; }
+.seat-chip-number:focus { outline: none; }
+.seat-chip-add button { display: grid; place-items: center; width: 28px; height: 34px; padding: 0; border: 0; border-radius: 6px; color: var(--bs-primary); background: transparent; }
+.seat-chip-add button:hover { color: white; background: var(--bs-primary); }
 
 .missing-seat-list { color: var(--bs-danger); font-size: 1rem; font-weight: 800; letter-spacing: .04em; }
 @media print { .app-sidebar { display:none!important; } .app-content { margin:0; padding:0; } }

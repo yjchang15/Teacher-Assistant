@@ -94,16 +94,19 @@ export async function deleteClass(id: number): Promise<void> {
   if (id) await execute("DELETE FROM classes WHERE id=$1", [id]);
 }
 
-// The `+` tile: append the next number after the class's highest seat.
-export async function addSeat(classId: number): Promise<void> {
-  if (!classId) return;
-  const highest = Number(await scalar<number>("SELECT COALESCE(MAX(seat),0) FROM class_seats WHERE class_id=$1", [classId]));
-  const seat = highest + 1;
-  if (seat > MAX_SEAT) return;
+// The `+` tile adds whatever number the teacher typed, so a seat deleted from
+// the middle can be put back. Already present is a no-op.
+export async function addSeat(classId: number, seat: number): Promise<void> {
+  if (!classId || !Number.isInteger(seat) || seat < 1 || seat > MAX_SEAT) return;
   await execute(
     "INSERT INTO class_seats (class_id,seat,created_at) VALUES ($1,$2,$3) ON CONFLICT (class_id,seat) DO NOTHING",
     [classId, seat, new Date().toISOString()],
   );
+}
+
+// What the `+` tile pre-fills: the next number after the highest seat.
+export function nextSeat(seats: number[]): number {
+  return Math.min(MAX_SEAT, (seats.length ? Math.max(...seats) : 0) + 1);
 }
 
 // Removing a seat only takes it off the grid — any 缺交紀錄 already logged

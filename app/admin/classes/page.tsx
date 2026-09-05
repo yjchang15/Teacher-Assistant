@@ -1,6 +1,6 @@
 import { addClass, addClassSeat, editClass, removeClass, removeClassSeat } from "@/app/actions";
 import ConfirmSubmitButton from "@/components/ConfirmSubmitButton";
-import { getClasses, DEFAULT_HEADCOUNT, MAX_SEAT } from "@/lib/queries";
+import { getClasses, nextSeat, DEFAULT_HEADCOUNT, MAX_SEAT } from "@/lib/queries";
 import { requireAccount } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
   const classes = await getClasses();
 
   return <main>
-    <header className="mb-4"><h1 className="h3 fw-bold mb-1">班級維護</h1><p className="text-body-secondary mb-0">填班級與人數，座號會自動展開。之後用 + 加一號、按 × 刪掉不用的號碼。</p></header>
+    <header className="mb-4"><h1 className="h3 fw-bold mb-1">班級維護</h1><p className="text-body-secondary mb-0">填班級與人數，座號會自動展開。之後按 × 刪掉不用的號碼；要加號碼就在最後一格填數字再按 +，刪掉的號碼也是這樣加回來。</p></header>
 
     {sp.created && <div className="alert alert-success">班級已建立，座號已依人數展開。</div>}
     {sp.updated && <div className="alert alert-success">班級名稱已更新。</div>}
@@ -47,9 +47,10 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
                 <button type="submit" className="seat-chip-del" aria-label={`刪除 ${seat} 號`} title={`刪除 ${seat} 號`}>×</button>
               </form>
             </div>)}
-            {item.seats.length < MAX_SEAT && <form action={addClassSeat}>
+{item.seats.length < MAX_SEAT && <form action={addClassSeat} className="seat-chip seat-chip-add">
               <input type="hidden" name="classId" value={item.id} />
-              <button type="submit" className="seat-chip seat-chip-add" aria-label="新增一個座號" title="新增一個座號"><i className="bi bi-plus-lg" /></button>
+              <input className="seat-chip-number" name="seat" type="number" min="1" max={MAX_SEAT} defaultValue={nextSeat(item.seats)} required aria-label={`${item.name} 要新增的座號`} />
+              <button type="submit" aria-label={`新增座號到 ${item.name}`} title="加入這個號碼"><i className="bi bi-plus-lg" /></button>
             </form>}
           </div>
         </div>
