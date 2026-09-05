@@ -198,11 +198,7 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .missing-seat-list { color: var(--bs-danger); font-size: 1rem; font-weight: 800; letter-spacing: .04em; }
 @media print { .app-sidebar { display:none!important; } .app-content { margin:0; padding:0; } }
 
-@media (min-width: 768px) {
-  html { min-width: 1180px; }
-}
-
-@media (max-width: 767px) {
+@media (max-width: 991px) {
   .app-sidebar { position: sticky; inset: 0 0 auto; z-index: 1030; width: 100%; min-height: 0; padding: 8px 10px; flex-direction: row; flex-wrap: wrap; align-items: center; border-right: 0; border-bottom: 1px solid var(--bs-border-color); }
   .sidebar-brand { gap: 8px; padding: 0; }
   .brand-mark { width: 34px; height: 34px; border-radius: 9px; }
