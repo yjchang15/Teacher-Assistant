@@ -86,7 +86,7 @@ export async function removeClass(formData: FormData) {
 
 export async function addClassSeat(formData: FormData) {
   await requireAccount();
-  await db.addSeat(i(formData, "classId"));
+  await db.addSeat(i(formData, "classId"), i(formData, "seat"));
   revalidateAll();
   redirect("/admin/classes");
 }
