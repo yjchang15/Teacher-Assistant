@@ -17,7 +17,7 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
     {sp.error && <div className="alert alert-danger">{sp.error === "exists" ? "此班級名稱已存在。" : "班級名稱不可空白，且限 20 個字以內。"}</div>}
 
     <section className="card mb-4"><form action={addClass} className="card-body d-flex align-items-end gap-3">
-      <div><label className="form-label" htmlFor="class-name">班級</label><input id="class-name" className="form-control" name="name" placeholder="701" maxLength={20} required /></div>
+      <div><label className="form-label" htmlFor="class-name">班級</label><input id="class-name" className="form-control" name="name" placeholder="101" maxLength={20} required /></div>
       <div><label className="form-label" htmlFor="class-headcount">人數</label><input id="class-headcount" className="form-control" name="headcount" type="number" min="1" max={MAX_SEAT} defaultValue={DEFAULT_HEADCOUNT} required /></div>
       <button className="btn btn-primary" type="submit"><i className="bi bi-plus-lg me-2" />新增班級</button>
     </form></section>
