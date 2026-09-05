@@ -4,14 +4,14 @@ import { useState } from "react";
 
 export default function DoubleClickSeatGrid({
   assignmentId,
-  seatCount,
-  seats,
+  seatStart,
+  seatEnd,
   missingSeats,
   action,
 }: {
   assignmentId: number;
-  seatCount: number;
-  seats: number[];
+  seatStart: number;
+  seatEnd: number;
   missingSeats: number[];
   action: (formData: FormData) => Promise<void>;
 }) {
@@ -42,8 +42,7 @@ export default function DoubleClickSeatGrid({
     }
   }
 
-  // Fall back to 1..seatCount when the class has no roster of its own.
-  const shown = seats.length ? seats : Array.from({ length: seatCount }, (_, index) => index + 1);
+  const shown = Array.from({ length: Math.max(0, seatEnd - seatStart + 1) }, (_, index) => seatStart + index);
 
   return (
     <div className="double-click-seat-grid" role="group" aria-label="學生座號">

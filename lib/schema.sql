@@ -20,11 +20,12 @@ CREATE TABLE IF NOT EXISTS accounts (
     created_at    TEXT DEFAULT ''
 );
 
--- 班級。name 由使用者自訂（例如 701），seat_count 是預設座號上限。
+-- 班級。name 由使用者自訂（例如 701），座號就是 seat_start 到 seat_end 的範圍。
 CREATE TABLE IF NOT EXISTS classes (
     id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name       TEXT NOT NULL UNIQUE,
-    seat_count INTEGER NOT NULL DEFAULT 32,
+    seat_start INTEGER NOT NULL DEFAULT 1,
+    seat_end   INTEGER NOT NULL DEFAULT 32,
     created_at TEXT DEFAULT ''
 );
 
@@ -49,15 +50,3 @@ CREATE TABLE IF NOT EXISTS assignment_records (
     created_at    TEXT DEFAULT '',
     UNIQUE (assignment_id, seat)
 );
-
--- 班級名冊：只有班級與座號，不記姓名。
-CREATE TABLE IF NOT EXISTS students (
-    id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    class_id   bigint NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    seat       INTEGER NOT NULL,
-    active     BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TEXT DEFAULT '',
-    UNIQUE(class_id, seat)
-);
-
-CREATE INDEX IF NOT EXISTS students_class_active ON students(class_id, active);

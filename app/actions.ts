@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 import { AUTH_COOKIE, createSessionToken, passwordHash } from "@/lib/auth";
 import { requireAccount } from "@/lib/session";
 import * as db from "@/lib/queries";
-import * as XLSX from "xlsx";
 
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const i = (fd: FormData, k: string) => Math.trunc(Number(String(fd.get(k) ?? "").trim()));
@@ -17,7 +16,6 @@ function revalidateAll() {
   revalidatePath("/admin/classes");
   revalidatePath("/admin/class-summary");
   revalidatePath("/admin/maintenance");
-  revalidatePath("/students");
 }
 
 function todayInTaipei() {
@@ -65,7 +63,7 @@ export async function addClass(formData: FormData) {
   await requireAccount();
   const name = s(formData, "name");
   if (!name || name.length > 20) redirect("/admin/classes?error=name");
-  const result = await db.createClass(name, i(formData, "seatCount"));
+  const result = await db.createClass(name, i(formData, "seatStart"), i(formData, "seatEnd"));
   revalidateAll();
   redirect(`/admin/classes?${result === "created" ? "created=1" : "error=exists"}`);
 }
@@ -74,7 +72,7 @@ export async function editClass(formData: FormData) {
   await requireAccount();
   const name = s(formData, "name");
   if (!name || name.length > 20) redirect("/admin/classes?error=name");
-  const result = await db.updateClass(i(formData, "id"), name, i(formData, "seatCount"));
+  const result = await db.updateClass(i(formData, "id"), name, i(formData, "seatStart"), i(formData, "seatEnd"));
   revalidateAll();
   redirect(`/admin/classes?${result === "updated" ? "updated=1" : "error=exists"}`);
 }
@@ -84,52 +82,6 @@ export async function removeClass(formData: FormData) {
   await db.deleteClass(i(formData, "id"));
   revalidateAll();
   redirect("/admin/classes?deleted=1");
-}
-
-// ── 名冊（班級 + 座號）─────────────────────────────────────────────────────────
-
-export async function upsertStudent(formData: FormData) {
-  await requireAccount();
-  const classId = i(formData, "classId");
-  await db.saveStudent(classId, i(formData, "seat"));
-  revalidateAll();
-}
-
-export async function removeStudent(formData: FormData) {
-  await requireAccount();
-  await db.deactivateStudent(i(formData, "id"), i(formData, "classId"));
-  revalidateAll();
-}
-
-// Reads a single 座號 column — the roster keeps no names.
-export async function importStudentRoster(formData: FormData) {
-  await requireAccount();
-  const classId = i(formData, "classId");
-  const file = formData.get("file");
-  const back = `/students?${new URLSearchParams({ classId: String(classId) }).toString()}`;
-  if (!(file instanceof File) || !file.size || file.size > 2 * 1024 * 1024) redirect(`${back}&error=file`);
-  try {
-    const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    if (!sheet) redirect(`${back}&error=sheet`);
-    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: "" });
-    const headers = (rows[0] ?? []).map((value) => String(value).trim().toLowerCase());
-    const seatColumn = headers.findIndex((header) => ["座號", "seat"].includes(header));
-    if (seatColumn < 0) redirect(`${back}&error=headers`);
-    const parsed = rows.slice(1)
-      .map((row) => Math.trunc(Number(String(row[seatColumn] ?? "").trim())))
-      .filter((seat) => Number.isFinite(seat) && seat !== 0);
-    const seats = new Set<number>();
-    const valid = parsed.length > 0 && parsed.length <= db.MAX_SEAT
-      && parsed.every((seat) => seat >= 1 && seat <= db.MAX_SEAT && !seats.has(seat) && (seats.add(seat), true));
-    if (!valid) redirect(`${back}&error=rows`);
-    await db.replaceStudents(classId, parsed);
-    revalidateAll();
-    redirect(`${back}&imported=${parsed.length}`);
-  } catch (error) {
-    if ((error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw error;
-    redirect(`${back}&error=parse`);
-  }
 }
 
 // ── 作業項目 ───────────────────────────────────────────────────────────────────
