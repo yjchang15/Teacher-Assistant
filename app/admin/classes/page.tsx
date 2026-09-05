@@ -47,8 +47,8 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
             </div>)}
 {item.seats.length < MAX_SEAT && <form action={addClassSeat} className="seat-chip seat-chip-add">
               <input type="hidden" name="classId" value={item.id} />
-              <input className="seat-chip-number" name="seat" type="number" min="1" max={MAX_SEAT} defaultValue={nextSeat(item.seats)} required aria-label={`${item.name} 要新增的座號`} />
-              <button type="submit" aria-label={`新增座號到 ${item.name}`} title="加入這個號碼"><i className="bi bi-plus-lg" /></button>
+              <input type="hidden" name="seat" value={nextSeat(item.seats)} />
+              <button type="submit" aria-label={`在 ${item.name} 新增下一個座號`} title="新增下一個座號"><i className="bi bi-plus-lg" /></button>
             </form>}
           </div>
         </div>
