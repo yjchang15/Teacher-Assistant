@@ -63,7 +63,7 @@ export async function addClass(formData: FormData) {
   await requireAccount();
   const name = s(formData, "name");
   if (!name || name.length > 20) redirect("/admin/classes?error=name");
-  const result = await db.createClass(name, i(formData, "seatStart"), i(formData, "seatEnd"));
+  const result = await db.createClass(name, i(formData, "headcount"));
   revalidateAll();
   redirect(`/admin/classes?${result === "created" ? "created=1" : "error=exists"}`);
 }
@@ -72,7 +72,7 @@ export async function editClass(formData: FormData) {
   await requireAccount();
   const name = s(formData, "name");
   if (!name || name.length > 20) redirect("/admin/classes?error=name");
-  const result = await db.updateClass(i(formData, "id"), name, i(formData, "seatStart"), i(formData, "seatEnd"));
+  const result = await db.renameClass(i(formData, "id"), name);
   revalidateAll();
   redirect(`/admin/classes?${result === "updated" ? "updated=1" : "error=exists"}`);
 }
@@ -82,6 +82,20 @@ export async function removeClass(formData: FormData) {
   await db.deleteClass(i(formData, "id"));
   revalidateAll();
   redirect("/admin/classes?deleted=1");
+}
+
+export async function addClassSeat(formData: FormData) {
+  await requireAccount();
+  await db.addSeat(i(formData, "classId"));
+  revalidateAll();
+  redirect("/admin/classes");
+}
+
+export async function removeClassSeat(formData: FormData) {
+  await requireAccount();
+  await db.deleteSeat(i(formData, "classId"), i(formData, "seat"));
+  revalidateAll();
+  redirect("/admin/classes");
 }
 
 // ── 作業項目 ───────────────────────────────────────────────────────────────────

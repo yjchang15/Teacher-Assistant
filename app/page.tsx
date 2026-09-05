@@ -60,9 +60,9 @@ export default async function LogPage({
         <div className="panel-header register-panel-header"><h2>{selectedAssignment ? <>缺交登記 <span>（點選座號立即登記）</span></> : "請選擇作業項目"}</h2>{selectedAssignment && <span className="missing-count">缺交 {missingSeats.length} 人</span>}</div>
 
         {selectedAssignment ? (
-          <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seatStart={selectedClass?.seat_start ?? 1} seatEnd={selectedClass?.seat_end ?? 32} missingSeats={missingSeats} action={toggleAssignmentSeat} />
+          <DoubleClickSeatGrid key={assignmentId} assignmentId={assignmentId} seats={selectedClass?.seats ?? []} missingSeats={missingSeats} action={toggleAssignmentSeat} />
         ) : (
-          <div className="subject-required-state"><i className="bi bi-hand-index-thumb" /><strong>{classId ? "請選擇或新增作業項目" : "請先到「班級管理」新增班級"}</strong><span>完成選擇後才會顯示座號。</span></div>
+          <div className="subject-required-state"><i className="bi bi-hand-index-thumb" /><strong>{classId ? "請選擇或新增作業項目" : "請先到「班級維護」新增班級"}</strong><span>完成選擇後才會顯示座號。</span></div>
         )}
       </section>
     </main>

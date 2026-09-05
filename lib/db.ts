@@ -171,7 +171,7 @@ export async function tx(statements: [string, unknown[]][]): Promise<void> {
 // Bump whenever schema.sql or the ALTER migrations below change, so existing
 // databases re-run the full init once. Between bumps, a cold instance skips the
 // schema round trips after a single cheap marker check.
-const SCHEMA_VERSION = "2026-09-05-seat-range";
+const SCHEMA_VERSION = "2026-09-05-class-seats";
 
 async function runInit(): Promise<void> {
   const be = await getBackend();
@@ -195,18 +195,33 @@ async function runInit(): Promise<void> {
 
   // Idempotent migrations off the old multi-account / 科別 / 名冊 model.
 
-  // 座號 is now just a seat_start..seat_end range on the class, so the
-  // per-seat roster table goes away. Carry the old seat_count over as the end
-  // of the range before dropping it.
-  await be.query("ALTER TABLE classes ADD COLUMN IF NOT EXISTS seat_start INTEGER NOT NULL DEFAULT 1", []);
-  await be.query("ALTER TABLE classes ADD COLUMN IF NOT EXISTS seat_end INTEGER NOT NULL DEFAULT 32", []);
-  try {
-    await be.query("UPDATE classes SET seat_end=seat_count WHERE seat_count IS NOT NULL AND seat_count>0", []);
-  } catch {
-    // seat_count is already gone — the range is authoritative.
+  // 座號 now lives one row per seat in `class_seats`. Fill it from whichever
+  // shape this database is still in — an old roster, a seat_start..seat_end
+  // range, or a seat_count. Each only touches classes that have no seats yet,
+  // so the first one that applies wins and re-running is a no-op.
+  const seatSources = [
+    "SELECT s.class_id AS class_id, s.seat AS seat FROM students s WHERE s.active=TRUE",
+    "SELECT c.id AS class_id, gs AS seat FROM classes c, generate_series(c.seat_start, c.seat_end) gs",
+    "SELECT c.id AS class_id, gs AS seat FROM classes c, generate_series(1, c.seat_count) gs",
+  ];
+  for (const source of seatSources) {
+    try {
+      await be.query(
+        "INSERT INTO class_seats(class_id,seat,created_at)" +
+          ` SELECT src.class_id, src.seat, '' FROM (${source}) src` +
+          " WHERE NOT EXISTS (SELECT 1 FROM class_seats existing WHERE existing.class_id=src.class_id)" +
+          " ON CONFLICT (class_id,seat) DO NOTHING",
+        [],
+      );
+    } catch {
+      // That table or column is already gone — try the next shape.
+    }
   }
-  await be.query("ALTER TABLE classes DROP COLUMN IF EXISTS seat_count", []);
+
   await be.query("DROP TABLE IF EXISTS students", []);
+  for (const column of ["seat_count", "seat_start", "seat_end"]) {
+    await be.query(`ALTER TABLE classes DROP COLUMN IF EXISTS ${column}`, []);
+  }
 
   // A class used to be named after the account linked to it. Carry that label
   // onto the class itself before the link column goes away, so existing classes

@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const end = rawStart <= rawEnd ? rawEnd : rawStart;
   const classes = await getClasses();
   const selectedClass = classes.find((item) => item.id === Number(req.nextUrl.searchParams.get("classId"))) ?? classes[0];
-  const matrix = await getAssignmentMatrix(selectedClass?.id ?? 0, start, end, selectedClass?.seat_start ?? 1, selectedClass?.seat_end ?? 32);
+  const matrix = await getAssignmentMatrix(selectedClass?.id ?? 0, start, end, selectedClass?.seats ?? []);
   const rows = matrix.rows.filter((row) => row.total > 0);
 
   const header = ["座號", ...matrix.titles, "未交合計"];
