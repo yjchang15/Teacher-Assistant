@@ -18,7 +18,7 @@ const notoTC = Noto_Sans_TC({
 });
 
 export const metadata: Metadata = {
-  title: "Teacher Assistant",
+  title: { default: "Teacher Assistant", template: "%s | Teacher Assistant" },
   description: "成績管理與英文口說輔助教學系統",
 };
 
@@ -44,8 +44,9 @@ export default async function RootLayout({
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
       </head>
       <body>
+        <a className="skip-link" href="#main-content">跳到主要內容</a>
         <Nav />
-        <div className="app-content">
+        <div className="app-content" id="main-content">
           {children}
         </div>
       </body>
