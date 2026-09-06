@@ -473,7 +473,10 @@ async function startReading() {
   state.articles = (await loadJSON('/api/articles')).articles || [];
 
   render('tpl-reading');
-  document.querySelector('[data-action="back"]').addEventListener('click', showHome);
+  document.querySelector('[data-action="back"]').addEventListener('click', () => {
+    stopReading(); // 不停掉的話，離開畫面後辨識還會一直自己接回去
+    showHome();
+  });
 
   const select = document.getElementById('articleSelect');
   state.articles.forEach((article, index) => {
@@ -511,16 +514,32 @@ async function startReading() {
 
 let isRecording = false;
 let readingRecognizer = null;
+// 只有學生按下「唸完了」（或離開畫面）才算唸完，辨識引擎自己停下來不算
+let readingStopped = false;
+
+// 手機的辨識引擎不理會 continuous：換氣停頓一下它就自己結束了，於是學生才唸
+// 兩句就跳出分數。電腦不會，所以桌機版一直是對的。沒有辦法叫它別停，只能在
+// 它停掉時立刻接回去；接回來之前唸的字都留著，最後合起來算分。
+// 麥克風如果壞掉，每一段都會瞬間結束，所以接回去要有上限：整段最多接這麼多
+// 次，而且一直沒聽到任何字的話，等這麼久就放棄，直接告訴學生沒有收到聲音。
+const MAX_READING_SEGMENTS = 120;
+const READING_SILENCE_GIVE_UP_MS = 20_000;
+
+function stopReading() {
+  readingStopped = true;
+  if (readingRecognizer) readingRecognizer.stop();
+}
 
 async function handleReadingRecord(text) {
   if (!text) return;
 
   // 錄音中再按一次就是「唸完了」，整段朗讀由學生自己決定何時結束
   if (isRecording) {
-    if (readingRecognizer) readingRecognizer.stop();
+    stopReading();
     return;
   }
   isRecording = true;
+  readingStopped = false;
 
   const recordBtn = document.getElementById('recordBtn');
   const status = document.getElementById('recordStatus');
@@ -534,41 +553,69 @@ async function handleReadingRecord(text) {
   // 裡，不留著的話整段唸完卻算不出分數。
   let tail = '';
   let failed = false;
+  let segments = 0;
+  let announced = false;
+  const startedAt = Date.now();
+
+  // 收下這一段聽到的字。interim 與 final 是不重疊的兩段，而且多算到的字不會
+  // 扣分（分數只看文章裡的字有沒有被唸到），所以寧可重複也不要漏掉。
+  const keepTail = () => {
+    heard = `${heard} ${tail}`.trim();
+    tail = '';
+  };
+
+  const finish = async () => {
+    recordBtn.classList.remove('recording');
+    recordBtn.textContent = '🎙️ 開始朗讀';
+    isRecording = false;
+    readingRecognizer = null;
+
+    const blob = await stopAudioCapture();
+    // 學生按了返回，這個畫面已經不在了，沒有地方可以顯示分數
+    if (!document.getElementById('resultBox')) return;
+
+    if (!heard) {
+      if (!failed) status.textContent = '沒有聽到內容，請再試一次。';
+      return;
+    }
+    // 分數只看唸出來的字對不對，不摻辨識信心值，比較好跟學生解釋
+    showReadingResult(text, heard, null, blob);
+  };
 
   readingRecognizer = createRecognizer({
     continuous: true,
     onStart: () => {
+      // 中途自己接回來的那幾段不要重寫畫面，否則字幕會被清掉
+      if (announced) return;
+      announced = true;
       recordBtn.classList.add('recording');
       recordBtn.textContent = '⏹️ 唸完了，看分數';
       status.textContent = '請開始朗讀整段，唸完後按上面的按鈕';
     },
     onError: (e) => {
-      // 連續辨識在停頓時常會回 no-speech，已經聽到內容就不算失敗
-      if (e.error === 'no-speech' && heard) return;
+      // 停頓時的 no-speech、以及我們自己叫停的 aborted，都不是真的出問題
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
       failed = true;
       status.textContent = `辨識發生問題（${e.error}），請再試一次。`;
     },
     onResult: ({ finalText, interimText }) => {
       if (finalText) heard = `${heard} ${finalText}`.trim();
-      // interim 與 final 是不重疊的兩段，所以留著當結尾備援不會重複計算
       tail = interimText;
       // 一邊唸一邊顯示聽到的字，學生才知道有沒有收到音
       status.textContent = `${heard} ${interimText}`.trim() || '請開始朗讀...';
     },
     onEnd: async () => {
-      recordBtn.classList.remove('recording');
-      recordBtn.textContent = '🎙️ 開始朗讀';
-      isRecording = false;
-      readingRecognizer = null;
-
-      const blob = await stopAudioCapture();
-      const spoken = `${heard} ${tail}`.trim();
-      if (!spoken) {
-        if (!failed) status.textContent = '沒有聽到內容，請再試一次。';
-        return;
+      keepTail();
+      const stillWorthWaiting = heard || Date.now() - startedAt < READING_SILENCE_GIVE_UP_MS;
+      if (!readingStopped && !failed && stillWorthWaiting && ++segments < MAX_READING_SEGMENTS) {
+        try {
+          readingRecognizer.start();
+          return;
+        } catch (e) {
+          // 接不回去就照原本的方式收尾，至少分數還在
+        }
       }
-      // 分數只看唸出來的字對不對，不摻辨識信心值，比較好跟學生解釋
-      showReadingResult(text, spoken, null, blob);
+      await finish();
     },
   });
 
