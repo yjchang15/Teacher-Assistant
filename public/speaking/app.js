@@ -289,11 +289,15 @@ function createRecognizer({ onResult, onStart, onEnd, onError, continuous = fals
   rec.onstart = onStart;
   rec.onend = onEnd;
   rec.onerror = (e) => onError && onError(e);
+  // event.results 是這一輪辨識到目前為止的完整清單，每次都從頭重讀一遍。
+  // resultIndex 說的是「這次事件新增的是哪一段」，但手機的引擎常常一直回 0，
+  // 照著它把新的字接到後面，同一段就會被接上好幾十次——學生唸兩句，畫面卻
+  // 跑出整篇重複的字。從頭重組就不會有這個問題，代價只是每次多跑幾十個字。
   rec.onresult = (event) => {
     let finalText = '';
     let interimText = '';
     let confidence = null;
-    for (let i = event.resultIndex; i < event.results.length; i++) {
+    for (let i = 0; i < event.results.length; i++) {
       const result = event.results[i];
       if (result.isFinal) {
         finalText += result[0].transcript + ' ';
@@ -548,20 +552,22 @@ async function handleReadingRecord(text) {
 
   await startAudioCapture();
 
-  let heard = '';
-  // 按下「唸完了」時，最後一段常常還沒被判定為 final。那段字只存在 interim
-  // 裡，不留著的話整段唸完卻算不出分數。
-  let tail = '';
+  // 辨識被手機中斷幾次，這裡就有幾段。每一段的內容由 onResult 整段換掉，不是
+  // 一直往後接，否則同一句會被記好幾次。
+  const done = [];
+  // 這一段目前聽到的全部（含還沒定案的 interim：按下「唸完了」時最後一句
+  // 常常還是 interim，丟掉的話整段唸完卻算不出分數）
+  let current = '';
+  const spokenSoFar = () => [...done, current].join(' ').trim();
+
   let failed = false;
   let segments = 0;
   let announced = false;
   const startedAt = Date.now();
 
-  // 收下這一段聽到的字。interim 與 final 是不重疊的兩段，而且多算到的字不會
-  // 扣分（分數只看文章裡的字有沒有被唸到），所以寧可重複也不要漏掉。
-  const keepTail = () => {
-    heard = `${heard} ${tail}`.trim();
-    tail = '';
+  const endSegment = () => {
+    if (current) done.push(current);
+    current = '';
   };
 
   const finish = async () => {
@@ -574,12 +580,13 @@ async function handleReadingRecord(text) {
     // 學生按了返回，這個畫面已經不在了，沒有地方可以顯示分數
     if (!document.getElementById('resultBox')) return;
 
-    if (!heard) {
+    const spoken = done.join(' ').trim();
+    if (!spoken) {
       if (!failed) status.textContent = '沒有聽到內容，請再試一次。';
       return;
     }
     // 分數只看唸出來的字對不對，不摻辨識信心值，比較好跟學生解釋
-    showReadingResult(text, heard, null, blob);
+    showReadingResult(text, spoken, null, blob);
   };
 
   readingRecognizer = createRecognizer({
@@ -599,14 +606,13 @@ async function handleReadingRecord(text) {
       status.textContent = `辨識發生問題（${e.error}），請再試一次。`;
     },
     onResult: ({ finalText, interimText }) => {
-      if (finalText) heard = `${heard} ${finalText}`.trim();
-      tail = interimText;
+      current = `${finalText} ${interimText}`.trim();
       // 一邊唸一邊顯示聽到的字，學生才知道有沒有收到音
-      status.textContent = `${heard} ${interimText}`.trim() || '請開始朗讀...';
+      status.textContent = spokenSoFar() || '請開始朗讀...';
     },
     onEnd: async () => {
-      keepTail();
-      const stillWorthWaiting = heard || Date.now() - startedAt < READING_SILENCE_GIVE_UP_MS;
+      endSegment();
+      const stillWorthWaiting = done.length || Date.now() - startedAt < READING_SILENCE_GIVE_UP_MS;
       if (!readingStopped && !failed && stillWorthWaiting && ++segments < MAX_READING_SEGMENTS) {
         try {
           readingRecognizer.start();
