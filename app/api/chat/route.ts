@@ -44,20 +44,31 @@ const RETRY_DELAYS_MS = [1_000, 3_000, 7_000];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 思考長度的設定方式跟著模型世代走：Gemini 3 用 thinkingLevel，2.5 只認
-// thinkingBudget，更舊的則兩個都不收。填錯欄位不是被忽略，而是整個請求被
-// 400 擋下來，所以這裡照模型名字決定要送哪一種。
-function thinkingConfig(model: string): Record<string, unknown> | null {
+type Thinking = Record<string, unknown> | null;
+
+// 學生等的每一秒幾乎都花在模型「思考」上：一句 How are you? 不需要推理，
+// 但預設的思考長度是照難題設計的。愈短愈好，所以由短往長排，用得動哪一個
+// 就用哪一個。
+//
+// 能填什麼跟著模型世代走：Gemini 3 用 thinkingLevel（只有部分機型收
+// minimal），2.5 只認 thinkingBudget，更舊的兩個都不收。填錯不是被忽略，
+// 而是整個請求被 400 擋掉，所以先照模型名字猜，猜錯再往下一個試。
+function thinkingCandidates(model: string): Thinking[] {
   const name = model.toLowerCase();
-  if (/^(models\/)?gemini-(3|[4-9]|\d{2,})/.test(name)) return { thinkingLevel: "low" };
-  if (name.includes("2.5")) return { thinkingBudget: 0 };
-  return null;
+  if (/^(models\/)?gemini-(3|[4-9]|\d{2,})/.test(name)) {
+    return [{ thinkingLevel: "minimal" }, { thinkingLevel: "low" }, null];
+  }
+  if (name.includes("2.5")) return [{ thinkingBudget: 0 }, null];
+  return [null];
 }
 
-// 萬一模型換了、上面猜錯了，別讓整堂課都打不通：把思考設定拿掉再送一次。
-function rejectsThinkingConfig(status: number, detail: string): boolean {
+function rejectsThinking(status: number, detail: string): boolean {
   return status === 400 && /thinking/i.test(detail);
 }
+
+// 試出來的那一組整個執行個體共用。不記住的話，每個請求都要先吃一次 400
+// 才走到會過的設定，反而比原本更慢。
+const acceptedThinking = new Map<string, Thinking>();
 
 async function callGeminiWithRetry(model: string, apiKey: string, payload: string): Promise<Response> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
@@ -110,29 +121,27 @@ export async function POST(request: NextRequest) {
     if (!history.length) return NextResponse.json({ error: "缺少對話內容" }, { status: 400 });
     const level = ["1200", "2000", "3500"].includes(String(body.level)) ? String(body.level) : "2000";
 
-    // 國中生的一句閒聊不需要推理，預設的思考時間是這裡最大的延遲來源。
-    const thinking = thinkingConfig(model);
-    const payload = {
+    const base = {
       contents: history,
       systemInstruction: { parts: [{ text: isFeedback ? feedbackPrompt : conversationPrompt(level) }] },
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-        ...(thinking ? { thinkingConfig: thinking } : {}),
-      },
+      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
     };
-    upstream = await callGeminiWithRetry(model, apiKey, JSON.stringify(payload));
+    const known = acceptedThinking.get(model);
+    const candidates = known === undefined ? thinkingCandidates(model) : [known];
 
-    if (thinking && !upstream.ok) {
-      const detail = await upstream.text().catch(() => "");
-      if (rejectsThinkingConfig(upstream.status, detail)) {
-        console.warn(`模型 ${model} 不接受 thinkingConfig，改用預設思考長度重送`, detail);
-        const { thinkingConfig: _dropped, ...generationConfig } = payload.generationConfig;
-        upstream = await callGeminiWithRetry(model, apiKey, JSON.stringify({ ...payload, generationConfig }));
-      } else {
-        // body 已經讀掉了，下面的錯誤處理還要再讀一次，所以原樣包回去
-        upstream = new Response(detail, { status: upstream.status });
+    upstream = new Response(null, { status: 500 });
+    for (const thinking of candidates) {
+      const generationConfig = { ...base.generationConfig, ...(thinking ? { thinkingConfig: thinking } : {}) };
+      upstream = await callGeminiWithRetry(model, apiKey, JSON.stringify({ ...base, generationConfig }));
+      if (upstream.ok) {
+        acceptedThinking.set(model, thinking);
+        break;
       }
+      // body 讀掉了就補回去，下面的錯誤處理還要再讀一次
+      const detail = await upstream.text().catch(() => "");
+      upstream = new Response(detail, { status: upstream.status });
+      if (!rejectsThinking(upstream.status, detail)) break;
+      console.warn(`模型 ${model} 不接受 ${JSON.stringify(thinking)}，改試下一組`, detail);
     }
   } catch (error) {
     if (error instanceof SyntaxError) return NextResponse.json({ error: "送出的內容不是合法的 JSON" }, { status: 400 });
