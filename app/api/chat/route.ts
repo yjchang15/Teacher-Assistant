@@ -37,6 +37,39 @@ function visibleText(parts: Part[] | undefined): string {
   return parts.filter((part) => !part.thought).map((part) => part.text || "").join("");
 }
 
+// 免費額度是以每分鐘計的，一整班同時上課很容易短暫超過。這種 429 通常
+// 等幾秒就過去了，所以在伺服器端先擋下來重試，不要讓學生看到錯誤訊息。
+const RETRY_STATUSES = new Set([429, 500, 503]);
+const RETRY_DELAYS_MS = [1_000, 3_000, 7_000];
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function callGeminiWithRetry(model: string, apiKey: string, payload: string): Promise<Response> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+  let last: Response | null = null;
+
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!RETRY_STATUSES.has(response.status) || attempt >= RETRY_DELAYS_MS.length) return response;
+
+    last = response;
+    // 上游說了要等多久就等多久，沒說才用自己的退避時間
+    const retryAfter = Number(response.headers.get("retry-after"));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 10_000)
+      : RETRY_DELAYS_MS[attempt];
+    // body 不讀掉會讓連線一直掛著
+    await response.body?.cancel().catch(() => {});
+    await sleep(waitMs);
+  }
+  return last!;
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   const model = process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash";
@@ -62,24 +95,17 @@ export async function POST(request: NextRequest) {
     if (!history.length) return NextResponse.json({ error: "缺少對話內容" }, { status: 400 });
     const level = ["1200", "2000", "3500"].includes(String(body.level)) ? String(body.level) : "2000";
 
-    upstream = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: history,
-          systemInstruction: { parts: [{ text: isFeedback ? feedbackPrompt : conversationPrompt(level) }] },
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 2048,
-            // 國中生的一句閒聊不需要推理，預設的思考時間是這裡最大的延遲來源。
-            thinkingLevel: "low",
-          },
-        }),
-        signal: AbortSignal.timeout(30_000),
+    const payload = JSON.stringify({
+      contents: history,
+      systemInstruction: { parts: [{ text: isFeedback ? feedbackPrompt : conversationPrompt(level) }] },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+        // 國中生的一句閒聊不需要推理，預設的思考時間是這裡最大的延遲來源。
+        thinkingLevel: "low",
       },
-    );
+    });
+    upstream = await callGeminiWithRetry(model, apiKey, payload);
   } catch (error) {
     if (error instanceof SyntaxError) return NextResponse.json({ error: "送出的內容不是合法的 JSON" }, { status: 400 });
     console.error("伺服器呼叫 Gemini 失敗", error);
@@ -89,6 +115,14 @@ export async function POST(request: NextRequest) {
   if (!upstream.ok || !upstream.body) {
     const detail = await upstream.text().catch(() => "");
     console.error("Gemini API error", upstream.status, detail);
+    // 重試完還是 429，代表整班真的把每分鐘的免費額度用滿了。
+    // 對學生講「等一下再說一次」比貼原始錯誤訊息有用。
+    if (upstream.status === 429) {
+      return NextResponse.json(
+        { error: "現在使用的人太多，請等幾秒再說一次。", retryable: true },
+        { status: 429 },
+      );
+    }
     let message = "Gemini API 呼叫失敗";
     try { message = JSON.parse(detail)?.error?.message || message; } catch { /* 上游不一定回 JSON */ }
     return NextResponse.json({ error: message }, { status: upstream.status });

@@ -630,27 +630,56 @@ async function startChat() {
 
   renderChatLog();
 
-  // 開場白由 AI 即時產生，不是寫死的句子
   const status = document.getElementById('chatStatus');
   const recordBtn = document.getElementById('chatRecordBtn');
   status.textContent = '';
-  recordBtn.disabled = true;
-  showTyping();
 
-  const opening = await streamAiTurn([
-    { role: 'user', text: '(Please start our conversation now with your short opening line.)' },
-  ]);
-
+  // 開場白改在本機挑一句，不呼叫 API。
+  // 一上課全班同時按「開始」，原本那 30 幾個請求會在幾秒內一起送出去，
+  // 免費額度是以每分鐘計的，光開場就先把配額打光。開場白本來就只是
+  // 一句招呼，寫在前端也一樣自然，而且是瞬間出現。
+  const opening = randomOpening(state.conversation.level);
   state.conversation.history.push({ role: 'model', text: opening });
   renderChatLog();
+  speakReset();
+  speakPush(opening);
+  speakFlush();
   recordBtn.disabled = false;
 }
 
-// 送出一輪對話，字回來就顯示、句子成形就唸，回傳完整的回覆。
+// 每個等級幾句不同的開場白，隨機挑一句，全班才不會整齊劃一
+const OPENINGS = {
+  1200: [
+    'Hi! How are you today?',
+    'Hello! What is your name?',
+    'Hi! Do you like school?',
+    'Hello! What do you eat for lunch?',
+  ],
+  2000: [
+    'Hi! How was your day today?',
+    'Hello! What do you like to do after school?',
+    'Hi! Did you watch anything fun this week?',
+    'Hello! What is your favorite food?',
+  ],
+  3500: [
+    'Hi! How has your week been so far?',
+    'Hello! What did you enjoy most about today?',
+    'Hi! Is there something you have been looking forward to?',
+    'Hello! What kind of music do you listen to, and why?',
+  ],
+};
+
+function randomOpening(level) {
+  const list = OPENINGS[level] || OPENINGS['2000'];
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+// 送出一輪對話，字回來就顯示、句子成形就唸。
+// 回傳 AI 說的話；失敗時回傳 null，並把原因寫在狀態列。
 async function streamAiTurn(history) {
   speakReset();
   let paint = null;
-  const text = await callChatApi(null, history, (delta, full) => {
+  const result = await callChatApi(null, history, (delta, full) => {
     if (!paint) paint = streamBubble();
     paint(full);
     speakPush(delta);
@@ -658,7 +687,17 @@ async function streamAiTurn(history) {
   speakFlush();
   hideTyping();
   clearStreamBubble();
-  return text;
+
+  if (result.error) {
+    // 錯誤訊息絕對不能進 history：它會被當成 AI 講過的話，
+    // 之後每一輪都跟著送回 Gemini，越積越多還會影響回答。
+    const status = document.getElementById('chatStatus');
+    status.textContent = result.retryable
+      ? `${result.error}（按一次麥克風就會重試）`
+      : result.error;
+    return null;
+  }
+  return result.text;
 }
 
 function renderChatLog() {
@@ -801,9 +840,12 @@ async function handleChatRecord() {
       showTyping();
 
       const aiText = await streamAiTurn(state.conversation.history);
-      state.conversation.history.push({ role: 'model', text: aiText });
-      renderChatLog();
-      status.textContent = '';
+      if (aiText) {
+        state.conversation.history.push({ role: 'model', text: aiText });
+        renderChatLog();
+        status.textContent = '';
+      }
+      // 失敗時把學生剛說的那句留在 history，他再按一次麥克風就是重試同一輪
       btn.disabled = false;
     },
   });
@@ -842,10 +884,15 @@ async function callChatApi(systemPrompt, history, onDelta) {
     });
     if (!res.ok) {
       let message = '未知錯誤';
-      try { message = (await res.json()).error || message; } catch { /* 錯誤頁不一定是 JSON */ }
-      return `（發生錯誤：${message}）`;
+      let retryable = res.status === 429;
+      try {
+        const data = await res.json();
+        message = data.error || message;
+        retryable = Boolean(data.retryable) || retryable;
+      } catch { /* 錯誤頁不一定是 JSON */ }
+      return { error: message, retryable };
     }
-    if (!res.body) return await res.text();
+    if (!res.body) return { text: await res.text() };
 
     const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
     let full = '';
@@ -856,9 +903,9 @@ async function callChatApi(systemPrompt, history, onDelta) {
       full += value;
       if (onDelta) onDelta(value, full);
     }
-    return full;
+    return { text: full };
   } catch (e) {
-    return '（無法連線到伺服器，請稍後再試）';
+    return { error: '無法連線到伺服器，請稍後再試。', retryable: true };
   }
 }
 
@@ -880,10 +927,17 @@ async function handleEndChat() {
     { role: 'user', text: '(This is the end of the conversation. Please give me feedback now.)' },
   ];
 
-  const feedback = await callChatApi(feedbackPrompt, historyWithRequest, (delta, full) => {
+  const result = await callChatApi(feedbackPrompt, historyWithRequest, (delta, full) => {
     feedbackBox.textContent = full; // 回饋比較長，邊產生邊顯示才不會像當掉
   });
-  feedbackBox.textContent = feedback;
+
+  // 拿不到回饋也要把紀錄存起來，老師那邊才看得到這次練習。
+  // 這裡不讓學生重按「結束對話」，因為 saveRecord 沒有更新的介面，
+  // 再按一次會變成兩筆紀錄，老師的對話次數就不準了。
+  const feedback = result.error ? '' : result.text;
+  feedbackBox.textContent = result.error
+    ? `${result.error}\n（這次練習已經記錄下來了，回饋這次拿不到）`
+    : feedback;
 
   saveRecord({
     type: 'conversation',
