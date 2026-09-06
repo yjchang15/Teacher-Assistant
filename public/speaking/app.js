@@ -546,7 +546,7 @@ async function handleReadingRecord(text) {
   }
 }
 
-function showReadingResult(targetText, heardText, confidence, audioBlob) {
+async function showReadingResult(targetText, heardText, confidence, audioBlob) {
   const targetWords = normalizeWords(targetText);
   const heardWords = normalizeWords(heardText);
   const { matched, accuracy } = diffWords(targetWords, heardWords);
@@ -571,7 +571,7 @@ function showReadingResult(targetText, heardText, confidence, audioBlob) {
   document.getElementById('resultBox').hidden = false;
   document.getElementById('recordStatus').textContent = '';
 
-  saveRecord({
+  const saved = await saveRecord({
     type: 'reading',
     student: state.studentName,
     seatNo: state.seatNo,
@@ -581,6 +581,11 @@ function showReadingResult(targetText, heardText, confidence, audioBlob) {
     heard: heardText,
     score,
   });
+  const warning = document.getElementById('saveWarning');
+  warning.hidden = saved.ok;
+  warning.textContent = saved.ok
+    ? ''
+    : `這次的分數沒有送到老師那裡（${saved.error}）。請告訴老師，或返回首頁重新選一次班級座號再唸。`;
 }
 
 // ====== 畫面：情境對話 ======
@@ -859,7 +864,9 @@ async function handleChatRecord() {
   }
 }
 
-// 把一次練習結果送到伺服器存檔（老師頁面用）。失敗不打擾學生，只寫 console。
+// 把一次練習結果送到伺服器存檔（老師頁面用）。
+// 存不進去一定要講出來：以前只寫在 console，學生看到分數就離開了，老師的後台
+// 卻始終是空的，兩邊都不知道發生了什麼事。
 async function saveRecord(payload) {
   try {
     const res = await fetch('/api/records', {
@@ -867,9 +874,14 @@ async function saveRecord(payload) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) console.warn('練習紀錄未存檔:', (await res.json()).error);
+    if (res.ok) return { ok: true };
+    let message = '';
+    try { message = (await res.json()).error || ''; } catch { /* 錯誤頁不一定是 JSON */ }
+    console.warn('練習紀錄未存檔:', res.status, message);
+    return { ok: false, error: message || `伺服器回應 ${res.status}` };
   } catch (e) {
     console.warn('練習紀錄未存檔（無法連線伺服器）:', e);
+    return { ok: false, error: '連不到伺服器' };
   }
 }
 
@@ -936,10 +948,10 @@ async function handleEndChat() {
   // 再按一次會變成兩筆紀錄，老師的對話次數就不準了。
   const feedback = result.error ? '' : result.text;
   feedbackBox.textContent = result.error
-    ? `${result.error}\n（這次練習已經記錄下來了，回饋這次拿不到）`
+    ? `${result.error}\n（這次練習會記錄下來，回饋這次拿不到）`
     : feedback;
 
-  saveRecord({
+  const saved = await saveRecord({
     type: 'conversation',
     student: state.studentName,
     seatNo: state.seatNo,
@@ -951,6 +963,9 @@ async function handleEndChat() {
     turns: state.conversation.history,
     feedback,
   });
+  if (!saved.ok) {
+    feedbackBox.textContent = `${feedbackBox.textContent}\n（這次練習沒有送到老師那裡：${saved.error}）`;
+  }
 }
 
 // ====== 啟動 ======
