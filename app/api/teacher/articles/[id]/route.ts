@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isTeacherAuthenticated } from "@/lib/auth";
 import { deleteSpeakingArticle, updateSpeakingArticle } from "@/lib/speaking";
 
 function articleId(params: Promise<{ id: string }>): Promise<number> {
@@ -7,7 +6,6 @@ function articleId(params: Promise<{ id: string }>): Promise<number> {
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await isTeacherAuthenticated())) return NextResponse.json({ error: "老師登入已失效" }, { status: 401 });
   const id = await articleId(params);
   if (!Number.isSafeInteger(id)) return NextResponse.json({ error: "文章編號錯誤" }, { status: 400 });
   try {
@@ -20,7 +18,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await isTeacherAuthenticated())) return NextResponse.json({ error: "老師登入已失效" }, { status: 401 });
   const id = await articleId(params);
   if (!Number.isSafeInteger(id)) return NextResponse.json({ error: "文章編號錯誤" }, { status: 400 });
   try {

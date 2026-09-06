@@ -11,12 +11,8 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 
-function authHeaders() {
-  return {};
-}
-
 async function api(path, options = {}) {
-  return fetch(path, { ...options, headers: { ...authHeaders(), ...(options.headers || {}) } });
+  return fetch(path, options);
 }
 
 function formatTime(iso) {
@@ -65,35 +61,10 @@ function setTabCount(id, count) {
   if (el) el.textContent = count ? String(count) : '';
 }
 
-// ====== 進入頁面：主系統已用安全 Cookie 完成老師登入 ======
+// ====== 進入頁面 ======
 
 async function init() {
   return showDashboard();
-}
-
-function showPinGate(message) {
-  $('pinCard').hidden = false;
-  $('dashboard').hidden = true;
-  if (message) {
-    $('pinError').hidden = false;
-    $('pinError').textContent = message;
-  }
-  $('pinInput').focus();
-}
-
-async function submitPin() {
-  const pin = $('pinInput').value.trim();
-  if (!pin) return;
-  state.pin = pin;
-  const res = await api('/api/teacher/auth');
-  if (!res.ok) {
-    state.pin = '';
-    sessionStorage.removeItem('teacherPin');
-    return showPinGate('密碼錯誤，請再試一次。');
-  }
-  sessionStorage.setItem('teacherPin', pin);
-  $('pinCard').hidden = true;
-  showDashboard();
 }
 
 async function showDashboard() {
@@ -133,10 +104,6 @@ function emptyState(icon, text) {
 async function loadRecords() {
   showLoading($('detailList'));
   const res = await api('/api/teacher/records');
-  if (res.status === 401) {
-    window.location.replace('/login?next=/speaking/teacher.html');
-    return;
-  }
   if (!res.ok) {
     $('detailCount').textContent = '讀取紀錄失敗，請確認伺服器是否正常執行。';
     return;
@@ -513,10 +480,6 @@ async function deleteArticle(article, index) {
 
 async function loadClasses() {
   const res = await api('/api/teacher/classes');
-  if (res.status === 401) {
-    window.location.replace('/login?next=/speaking/teacher.html');
-    return;
-  }
   if (!res.ok) return;
   state.classes = (await res.json()).classes || [];
 }
@@ -666,7 +629,7 @@ async function deleteClass(cls) {
 
 // ====== 匯出與清空 ======
 
-// 用 fetch 下載才能帶密碼標頭，不必把密碼放進網址
+// 用 fetch 下載，讓匯出失敗時能顯示清楚的訊息
 async function downloadFile(path, filename) {
   const res = await api(path);
   if (!res.ok) {
@@ -702,8 +665,6 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
-$('pinBtn')?.addEventListener('click', submitPin);
-$('pinInput')?.addEventListener('keydown', (e) => e.key === 'Enter' && submitPin());
 $('refreshBtn').addEventListener('click', () =>
   Promise.all([loadRecords(), loadClasses(), loadArticles()])
 );

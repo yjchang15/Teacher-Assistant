@@ -13,7 +13,7 @@
 | Language | TypeScript 5 (strict, `@/*` path alias) |
 | Styling | Tailwind CSS v4 + Bootstrap 5 (CDN) + Bootstrap Icons |
 | Data | Dual backend — `postgres` (Supabase) in prod, `@electric-sql/pglite` (WASM Postgres) for local dev; see `lib/db.ts` |
-| Access | Single-teacher signed-cookie login; public student speaking page |
+| Access | Single-teacher app with no built-in login; public student speaking page |
 | Tests | `node --test` + `tsx` |
 | Deploy | Vercel |
 
@@ -26,17 +26,15 @@ npm run dev        # http://localhost:3000
 
 With no `DATABASE_URL`, the app uses a local PGlite file DB under `./.pglite`
 (auto-created, schema auto-applied). Set `DATABASE_URL` to a Supabase pooler URL
-to use Postgres. Copy `.env.example` → `.env.local` to configure. In local
-development only, teacher login is skipped when its two variables are absent.
+to use Postgres. Copy `.env.example` → `.env.local` to configure.
 
 ## Access
 
-The teacher pages require a `TEACHER_PIN` of at least 4 characters and a
-`SESSION_SECRET` of at least 32 characters in production. The PIN is exchanged
-for a signed, HttpOnly, Secure cookie and is
-never stored in browser JavaScript. The student speaking page is public at
-`/speaking`; it can read class/seat choices and submit completed practice, but
-cannot read teacher reports or modify classes.
+This is a single-teacher app with no account or login screen. The student
+speaking page is public at `/speaking`. Because there is no login, anyone who
+knows the deployment URL can also open teacher pages and teacher API routes.
+Use a private deployment URL or enable Vercel Deployment Protection if access
+must be restricted later.
 
 ## Supabase + Vercel deployment
 
@@ -44,8 +42,8 @@ cannot read teacher reports or modify classes.
    `supabase/migrations/20260906000000_speaking_service.sql` in SQL Editor.
 2. Copy the Supabase **Transaction pooler** connection string (port 6543) and
    save it in Vercel as `DATABASE_URL`.
-3. Add `TEACHER_PIN`, `SESSION_SECRET`, `GEMINI_API_KEY`, and optionally
-   `GEMINI_MODEL` to Vercel for Production, Preview, and Development.
+3. Add `GEMINI_API_KEY` and optionally `GEMINI_MODEL` to Vercel for Production,
+   Preview, and Development.
 4. Import the `Teacher-Assistant` GitHub repository into Vercel and deploy.
 
 The migration enables RLS and removes Data API access for `anon` and

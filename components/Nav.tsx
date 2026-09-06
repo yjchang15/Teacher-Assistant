@@ -1,6 +1,5 @@
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
-import { logoutTeacher } from "@/app/login/actions";
 
 export default function Nav() {
   return (
@@ -27,9 +26,6 @@ export default function Nav() {
         <div className="d-flex align-items-center justify-content-between">
           <span className="small text-body-secondary">顯示模式</span><ThemeToggle />
         </div>
-        <form action={logoutTeacher} className="mt-3">
-          <button className="btn btn-outline-secondary btn-sm w-100" type="submit"><i className="bi bi-box-arrow-right me-2" />登出</button>
-        </form>
       </div>
     </aside>
   );

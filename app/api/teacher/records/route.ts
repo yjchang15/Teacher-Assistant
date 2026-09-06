@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { isTeacherAuthenticated } from "@/lib/auth";
 import { clearSpeakingRecords, getSpeakingRecords, getSpeakingSummaries } from "@/lib/speaking";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!(await isTeacherAuthenticated())) return NextResponse.json({ error: "老師登入已失效" }, { status: 401 });
   try {
     const records = await getSpeakingRecords();
     return NextResponse.json({ records, summary: await getSpeakingSummaries(records) });
@@ -16,7 +14,6 @@ export async function GET() {
 }
 
 export async function DELETE() {
-  if (!(await isTeacherAuthenticated())) return NextResponse.json({ error: "老師登入已失效" }, { status: 401 });
   try {
     return NextResponse.json({ ok: true, ...(await clearSpeakingRecords()) });
   } catch (error) {

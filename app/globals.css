@@ -27,11 +27,6 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .sidebar-footer { margin-top: auto; padding: 18px 6px 0; border-top: 1px solid var(--bs-border-color); }
 .theme-toggle { display: inline-grid; place-items: center; width: 2.125rem; height: 2.125rem; padding: 0; }
 
-.login-shell { display: grid; min-height: calc(100vh - 60px); place-items: center; padding: 24px; }
-.login-card { width: min(100%, 430px); padding: 38px; border: 1px solid var(--bs-border-color); border-radius: 18px; background: var(--bs-body-bg); box-shadow: 0 20px 55px rgba(25, 35, 55, .12); text-align: center; }
-.login-card h1 { margin: 0 0 8px; font-size: 1.8rem; font-weight: 800; }
-.login-mark { margin: 0 auto 18px; }
-
 .app-content { min-height: 100vh; margin-left: var(--sidebar-width); padding: 30px 28px; }
 .desktop-dashboard { width: 100%; max-width: 1500px; margin: 0 auto; }
 .page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin-bottom: 18px; }
