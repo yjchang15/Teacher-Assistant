@@ -12,7 +12,7 @@ const sections = [
   ] },
   { label: "英文口說", items: [
     { href: "/speaking/index.html", icon: "bi-mic-fill", label: "學生練習", external: true },
-    { href: "/speaking/teacher.html", icon: "bi-bar-chart-line-fill", label: "口說教學管理" },
+    { href: "/speaking/teacher.html", icon: "bi-bar-chart-line-fill", label: "後台管理" },
   ] },
   { label: "系統管理", items: [
     { href: "/admin/classes", icon: "bi-mortarboard", label: "班級與座號" },
