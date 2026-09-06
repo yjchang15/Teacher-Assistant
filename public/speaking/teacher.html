@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>老師專區 — 英文口說練習</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner wide">
+    <span class="logo-dot"></span>
+    <h1>英文口說管理</h1>
+    <div class="btn-row compact">
+      <a class="link-btn" href="/admin/classes">班級維護</a>
+      <a class="link-btn" href="index.html">學生練習頁</a>
+      <a class="link-btn" href="/">回主系統</a>
+    </div>
+  </div>
+</header>
+
+<main class="app wide">
+  <div id="dashboard" hidden>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="scores" role="tab" aria-selected="true">成績</button>
+      <button class="tab-btn" data-tab="content" role="tab" aria-selected="false">朗讀文章</button>
+      <button class="tab-btn" data-tab="data" role="tab" aria-selected="false">資料管理</button>
+    </nav>
+
+    <!-- 成績 -->
+    <div class="tab-panel" data-panel="scores" role="tabpanel">
+      <section class="card">
+        <div class="row-between">
+          <div class="class-picker">
+            <label for="scoreClass">班級</label>
+            <select id="scoreClass"></select>
+          </div>
+          <div class="btn-row compact">
+            <button id="refreshBtn" class="secondary-btn">重新整理</button>
+            <button id="exportSummaryBtn" class="secondary-btn">匯出成績 CSV</button>
+            <button id="exportRecordsBtn" class="primary-btn">匯出明細 CSV</button>
+          </div>
+        </div>
+
+        <div id="classStats" class="stat-row"></div>
+        <p id="emptyHint" class="hint" hidden>這個班級還沒有人練習。學生在練習頁完成一次朗讀或結束一次對話後就會出現在這裡。</p>
+
+        <div class="table-wrap">
+          <table id="summaryTable" class="data-table">
+            <thead>
+              <tr id="summaryHead">
+                <th>座號</th><th>朗讀次數</th><th>平均分</th><th>最高分</th>
+                <th>對話次數</th><th>對話總輪數</th><th>最後練習時間</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row-between">
+          <h2>練習明細</h2>
+          <div class="filter-row">
+            <select id="studentFilter"><option value="all">全部學生</option></select>
+            <select id="typeFilter">
+              <option value="all">全部類型</option>
+              <option value="reading">只看朗讀</option>
+              <option value="conversation">只看對話</option>
+            </select>
+          </div>
+        </div>
+        <p id="detailCount" class="hint"></p>
+        <div id="detailList" class="detail-list"></div>
+      </section>
+    </div>
+
+    <!-- 朗讀文章 -->
+    <div class="tab-panel" data-panel="content" role="tabpanel" hidden>
+      <section class="card">
+        <div class="row-between">
+          <h2>朗讀文章</h2>
+          <span id="articleInfo" class="class-count"></span>
+        </div>
+        <p class="hint">
+          可維護多篇朗讀文章，系統會依順序自動編為「文章 #1、文章 #2…」。
+        </p>
+
+        <div class="article-new">
+          <textarea id="newArticleInput" rows="4" placeholder="在這裡貼上新的英文文章…"></textarea>
+          <p id="articleError" class="warning" hidden></p>
+          <button id="addArticleBtn" class="primary-btn">＋ 新增文章</button>
+        </div>
+        <div id="articleList" class="article-list"></div>
+      </section>
+    </div>
+
+    <!-- 資料管理 -->
+    <div class="tab-panel" data-panel="data" role="tabpanel" hidden>
+      <section class="card">
+        <h2>資料管理</h2>
+        <p class="hint">
+          班級、朗讀文章與練習紀錄都儲存在同一個 Supabase 專案。班級請使用主系統的
+          「班級維護」，口說成績可用上方按鈕匯出 CSV。
+        </p>
+        <p class="hint">
+          清空練習紀錄前，系統會先把完整快照存進
+          <code>speaking_practice_record_backups</code> 資料表。
+        </p>
+        <button id="clearBtn" class="danger-btn">清空所有練習紀錄</button>
+        <p id="clearResult" class="hint"></p>
+      </section>
+    </div>
+
+  </div>
+</main>
+
+<script src="teacher.js"></script>
+</body>
+</html>

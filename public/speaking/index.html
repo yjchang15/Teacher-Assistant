@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>國中英文口說練習</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <span class="logo-dot"></span>
+    <h1>英文口說練習</h1>
+    <span id="studentBadge" class="student-badge" hidden></span>
+  </div>
+</header>
+
+<main id="app" class="app"></main>
+
+<template id="tpl-home">
+  <section class="card center-card">
+    <h2>開始練習</h2>
+    <p id="homeHint" class="hint">載入班級名冊中...</p>
+
+    <div id="rosterPicker">
+      <select id="classSelect" hidden></select>
+      <div id="studentGrid" class="student-grid"></div>
+    </div>
+    <div class="mode-grid">
+      <button class="mode-btn" data-mode="reading" disabled>
+        <span class="mode-icon">🎙️</span>
+        <span class="mode-title">朗讀評分</span>
+        <span class="mode-desc">唸完老師出的文章，馬上看到準確度分數</span>
+      </button>
+      <button class="mode-btn" data-mode="conversation" disabled>
+        <span class="mode-icon">💬</span>
+        <span class="mode-title">英語對話</span>
+        <span class="mode-desc">直接跟 AI 用英文聊天，想聊什麼都可以</span>
+      </button>
+    </div>
+    <p id="browserWarning" class="warning" hidden>
+      這個瀏覽器不支援語音辨識功能。請改用電腦版的 <b>Chrome</b> 或 <b>Edge</b> 瀏覽器開啟這個網頁。
+    </p>
+    <p class="home-footer"><a href="teacher.html">老師登入（查看口說練習紀錄）</a></p>
+  </section>
+</template>
+
+<template id="tpl-reading">
+  <section class="card">
+    <div class="row-between">
+      <button class="link-btn" data-action="back">← 返回</button>
+      <label class="reading-picker">
+        <span>朗讀文章</span>
+        <select id="articleSelect"></select>
+      </label>
+    </div>
+
+    <div class="sentence-box">
+      <p id="sentenceText" class="sentence-text">載入中...</p>
+    </div>
+
+    <div class="record-area">
+      <button id="recordBtn" class="record-btn">🎙️ 開始朗讀</button>
+      <p id="recordStatus" class="record-status"></p>
+    </div>
+
+    <div class="playback-row">
+      <button id="playModelBtn" class="icon-btn">🔊 聽正確發音</button>
+      <button id="playMineBtn" class="icon-btn" hidden>▶️ 聽我唸的</button>
+    </div>
+
+    <div id="resultBox" class="result-box" hidden>
+      <div class="score-row">
+        <div class="score-circle" id="scoreCircle">--</div>
+        <div class="score-detail">
+          <p>你說的內容：</p>
+          <p id="heardText" class="heard-text"></p>
+        </div>
+      </div>
+      <div class="diff-box">
+        <div class="diff-legend">
+          <span><b class="word-ok">綠色</b>＝有唸到</span>
+          <span><b class="word-miss">紅色</b>＝沒唸到</span>
+        </div>
+        <p id="diffLine" class="diff-line"></p>
+      </div>
+      <div class="btn-row">
+        <button id="retryBtn" class="primary-btn">再唸一次</button>
+      </div>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-conversation">
+  <section class="card">
+    <div class="row-between">
+      <button class="link-btn" data-action="back">← 返回</button>
+      <div class="conversation-tools">
+        <label>
+          <span>程度</span>
+          <select id="conversationLevel">
+            <option value="1200">基礎（1200 單字）</option>
+            <option value="2000">標準（2000 單字）</option>
+            <option value="3500">進階（3500 單字）</option>
+          </select>
+        </label>
+        <button id="restartChatBtn" class="link-btn">重新開始</button>
+      </div>
+    </div>
+
+    <div class="level-guide" aria-label="英文對話程度說明">
+      <div class="level-guide-head">
+        <span>等級</span><span>參考字彙數</span><span>對話方式</span>
+      </div>
+      <div class="level-guide-row" data-level="1200">
+        <strong>基礎</strong><span>約 1,200 字</span><span>每次 1 句，最多 10 字</span>
+      </div>
+      <div class="level-guide-row" data-level="2000">
+        <strong>標準</strong><span>約 2,000 字</span><span>每次 1 句，最多 12 字</span>
+      </div>
+      <div class="level-guide-row" data-level="3500">
+        <strong>進階</strong><span>約 3,500 字</span><span>每次最多 2 句，每句 18 字</span>
+      </div>
+    </div>
+
+    <div id="chatArea" class="chat-area">
+      <div id="chatLog" class="chat-log"></div>
+      <div class="record-area">
+        <button id="chatRecordBtn" class="record-btn">🎙️ 按住說話</button>
+        <p id="chatStatus" class="record-status"></p>
+      </div>
+      <div class="btn-row">
+        <button id="endChatBtn" class="secondary-btn">結束並取得回饋</button>
+      </div>
+      <div id="feedbackBox" class="feedback-box" hidden></div>
+    </div>
+  </section>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>

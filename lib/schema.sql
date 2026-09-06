@@ -1,6 +1,8 @@
 -- Teacher-Assistant schema (PostgreSQL / Supabase)
 -- Paste this into the Supabase SQL editor, or it is auto-applied to the local
--- PGlite database during development. Single-user app: RLS off.
+-- PGlite database during development. Production access goes through the
+-- server-side DATABASE_URL. Supabase Data API roles are locked down by the
+-- migration in supabase/migrations.
 -- NOTE: runInit splits this file on the statement separator, so never write that
 -- separator character inside a comment (it would cut the comment mid-line).
 
@@ -58,4 +60,35 @@ CREATE TABLE IF NOT EXISTS assignment_records (
     seat          INTEGER NOT NULL,
     created_at    TEXT DEFAULT '',
     UNIQUE (assignment_id, seat)
+);
+
+-- English speaking practice reading material. The UI numbers articles by
+-- creation order, so titles do not need to be stored separately.
+CREATE TABLE IF NOT EXISTS speaking_articles (
+    id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    content    TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL DEFAULT ''
+);
+
+-- One completed reading or conversation practice. class_name is a snapshot so
+-- reports remain understandable even if the class is renamed or removed.
+CREATE TABLE IF NOT EXISTS speaking_practice_records (
+    id          TEXT PRIMARY KEY,
+    class_id    bigint REFERENCES classes(id) ON DELETE SET NULL,
+    class_name  TEXT NOT NULL,
+    seat         INTEGER NOT NULL,
+    record_data JSONB NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS speaking_records_class_created
+    ON speaking_practice_records (class_id, created_at DESC);
+
+-- Clearing records writes a full JSON snapshot here first in the same
+-- transaction. This gives the teacher a recoverable audit trail.
+CREATE TABLE IF NOT EXISTS speaking_practice_record_backups (
+    id         TEXT PRIMARY KEY,
+    records    JSONB NOT NULL,
+    created_at TEXT NOT NULL DEFAULT ''
 );

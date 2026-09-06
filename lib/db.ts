@@ -170,7 +170,7 @@ export async function tx(statements: [string, unknown[]][]): Promise<void> {
 // Bump whenever schema.sql or the ALTER migrations below change, so existing
 // databases re-run the full init once. Between bumps, a cold instance skips the
 // schema round trips after a single cheap marker check.
-const SCHEMA_VERSION = "2026-09-05-class-seats";
+const SCHEMA_VERSION = "2026-09-06-speaking-service";
 
 async function runInit(): Promise<void> {
   const be = await getBackend();

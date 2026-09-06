@@ -19,7 +19,7 @@ const notoTC = Noto_Sans_TC({
 
 export const metadata: Metadata = {
   title: "Teacher Assistant",
-  description: "教學助理系統",
+  description: "成績管理與英文口說輔助教學系統",
 };
 
 export default async function RootLayout({
