@@ -93,11 +93,40 @@ function utterance(text, lang = 'en-US') {
   return utter;
 }
 
+// 手機瀏覽器只有在使用者剛碰過畫面時才准許網頁發出聲音。AI 的回覆要等網路
+// 回來才唸得出來，那時候早就不算「剛碰過」了，於是整堂課都是靜音的——電腦
+// 和平板沒有這條限制，所以只有手機出問題。這裡在第一次觸碰時先唸一段沒有
+// 音量的空白，把發聲權限拿到手，之後排進佇列的句子就都放得出來。
+let speechUnlocked = false;
+
+function unlockSpeech() {
+  if (speechUnlocked || !window.speechSynthesis) return;
+  try {
+    const warmUp = new SpeechSynthesisUtterance(' ');
+    warmUp.volume = 0;
+    window.speechSynthesis.speak(warmUp);
+    speechUnlocked = true;
+  } catch (e) {
+    /* 這次拿不到就算了，下一次觸碰再試 */
+  }
+}
+
+document.addEventListener('pointerdown', unlockSpeech, true);
+document.addEventListener('touchend', unlockSpeech, true);
+document.addEventListener('keydown', unlockSpeech, true);
+
+// iOS 會在講完一句或切走分頁之後把佇列擱置著，不 resume 就再也不出聲
+function speakNow(utter) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.speak(utter);
+  if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+}
+
 function speak(text, lang = 'en-US') {
   stopClip();
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance(text, lang));
+  speakNow(utterance(text, lang));
 }
 
 // ====== 邊收字邊唸 ======
@@ -124,7 +153,7 @@ function speakPush(delta) {
     const sentence = ttsPending.slice(0, cut).trim();
     ttsPending = ttsPending.slice(cut);
     // 這裡不能 cancel，否則會打斷前一句；直接排隊接著唸
-    if (sentence) window.speechSynthesis.speak(utterance(sentence));
+    if (sentence) speakNow(utterance(sentence));
   }
 }
 
@@ -132,14 +161,21 @@ function speakFlush() {
   if (!window.speechSynthesis) return;
   const rest = ttsPending.trim();
   ttsPending = '';
-  if (rest) window.speechSynthesis.speak(utterance(rest));
+  if (rest) speakNow(utterance(rest));
 }
 
 // ====== 錄下學生的聲音，讓他自己聽 ======
 // SpeechRecognition 只會給文字、拿不到聲音，所以另外用 MediaRecorder 同時錄一份。
 // 錄音只留在瀏覽器記憶體裡，不會上傳，換下一句就丟掉。
 
-const audioSupported = !!(
+// 手機的麥克風一次只服務一個使用者。MediaRecorder 先接上去之後，語音辨識就
+// 一個字都收不到，學生整段唸完只換來「沒有聽到內容」。電腦和平板沒有這個限制，
+// 兩邊可以同時開著，所以只有手機不能用。回放自己的錄音只是加分，辨識不到的話
+// 整個練習都沒意義，所以手機上把麥克風整支讓給辨識。
+const isPhone = /iPhone|iPod/.test(navigator.userAgent)
+  || (/Android/.test(navigator.userAgent) && /Mobile/.test(navigator.userAgent));
+
+const audioSupported = !isPhone && !!(
   navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder
 );
 let mediaRecorder = null;
@@ -546,7 +582,7 @@ async function handleReadingRecord(text) {
   }
 }
 
-function showReadingResult(targetText, heardText, confidence, audioBlob) {
+async function showReadingResult(targetText, heardText, confidence, audioBlob) {
   const targetWords = normalizeWords(targetText);
   const heardWords = normalizeWords(heardText);
   const { matched, accuracy } = diffWords(targetWords, heardWords);
@@ -571,7 +607,7 @@ function showReadingResult(targetText, heardText, confidence, audioBlob) {
   document.getElementById('resultBox').hidden = false;
   document.getElementById('recordStatus').textContent = '';
 
-  saveRecord({
+  const saved = await saveRecord({
     type: 'reading',
     student: state.studentName,
     seatNo: state.seatNo,
@@ -581,6 +617,11 @@ function showReadingResult(targetText, heardText, confidence, audioBlob) {
     heard: heardText,
     score,
   });
+  const warning = document.getElementById('saveWarning');
+  warning.hidden = saved.ok;
+  warning.textContent = saved.ok
+    ? ''
+    : `這次的分數沒有送到老師那裡（${saved.error}）。請告訴老師，或返回首頁重新選一次班級座號再唸。`;
 }
 
 // ====== 畫面：情境對話 ======
@@ -859,7 +900,9 @@ async function handleChatRecord() {
   }
 }
 
-// 把一次練習結果送到伺服器存檔（老師頁面用）。失敗不打擾學生，只寫 console。
+// 把一次練習結果送到伺服器存檔（老師頁面用）。
+// 存不進去一定要講出來：以前只寫在 console，學生看到分數就離開了，老師的後台
+// 卻始終是空的，兩邊都不知道發生了什麼事。
 async function saveRecord(payload) {
   try {
     const res = await fetch('/api/records', {
@@ -867,9 +910,14 @@ async function saveRecord(payload) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) console.warn('練習紀錄未存檔:', (await res.json()).error);
+    if (res.ok) return { ok: true };
+    let message = '';
+    try { message = (await res.json()).error || ''; } catch { /* 錯誤頁不一定是 JSON */ }
+    console.warn('練習紀錄未存檔:', res.status, message);
+    return { ok: false, error: message || `伺服器回應 ${res.status}` };
   } catch (e) {
     console.warn('練習紀錄未存檔（無法連線伺服器）:', e);
+    return { ok: false, error: '連不到伺服器' };
   }
 }
 
@@ -936,10 +984,10 @@ async function handleEndChat() {
   // 再按一次會變成兩筆紀錄，老師的對話次數就不準了。
   const feedback = result.error ? '' : result.text;
   feedbackBox.textContent = result.error
-    ? `${result.error}\n（這次練習已經記錄下來了，回饋這次拿不到）`
+    ? `${result.error}\n（這次練習會記錄下來，回饋這次拿不到）`
     : feedback;
 
-  saveRecord({
+  const saved = await saveRecord({
     type: 'conversation',
     student: state.studentName,
     seatNo: state.seatNo,
@@ -951,6 +999,9 @@ async function handleEndChat() {
     turns: state.conversation.history,
     feedback,
   });
+  if (!saved.ok) {
+    feedbackBox.textContent = `${feedbackBox.textContent}\n（這次練習沒有送到老師那裡：${saved.error}）`;
+  }
 }
 
 // ====== 啟動 ======

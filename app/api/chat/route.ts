@@ -44,6 +44,21 @@ const RETRY_DELAYS_MS = [1_000, 3_000, 7_000];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// 思考長度的設定方式跟著模型世代走：Gemini 3 用 thinkingLevel，2.5 只認
+// thinkingBudget，更舊的則兩個都不收。填錯欄位不是被忽略，而是整個請求被
+// 400 擋下來，所以這裡照模型名字決定要送哪一種。
+function thinkingConfig(model: string): Record<string, unknown> | null {
+  const name = model.toLowerCase();
+  if (/^(models\/)?gemini-(3|[4-9]|\d{2,})/.test(name)) return { thinkingLevel: "low" };
+  if (name.includes("2.5")) return { thinkingBudget: 0 };
+  return null;
+}
+
+// 萬一模型換了、上面猜錯了，別讓整堂課都打不通：把思考設定拿掉再送一次。
+function rejectsThinkingConfig(status: number, detail: string): boolean {
+  return status === 400 && /thinking/i.test(detail);
+}
+
 async function callGeminiWithRetry(model: string, apiKey: string, payload: string): Promise<Response> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
   let last: Response | null = null;
@@ -95,17 +110,30 @@ export async function POST(request: NextRequest) {
     if (!history.length) return NextResponse.json({ error: "缺少對話內容" }, { status: 400 });
     const level = ["1200", "2000", "3500"].includes(String(body.level)) ? String(body.level) : "2000";
 
-    const payload = JSON.stringify({
+    // 國中生的一句閒聊不需要推理，預設的思考時間是這裡最大的延遲來源。
+    const thinking = thinkingConfig(model);
+    const payload = {
       contents: history,
       systemInstruction: { parts: [{ text: isFeedback ? feedbackPrompt : conversationPrompt(level) }] },
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
-        // 國中生的一句閒聊不需要推理，預設的思考時間是這裡最大的延遲來源。
-        thinkingLevel: "low",
+        ...(thinking ? { thinkingConfig: thinking } : {}),
       },
-    });
-    upstream = await callGeminiWithRetry(model, apiKey, payload);
+    };
+    upstream = await callGeminiWithRetry(model, apiKey, JSON.stringify(payload));
+
+    if (thinking && !upstream.ok) {
+      const detail = await upstream.text().catch(() => "");
+      if (rejectsThinkingConfig(upstream.status, detail)) {
+        console.warn(`模型 ${model} 不接受 thinkingConfig，改用預設思考長度重送`, detail);
+        const { thinkingConfig: _dropped, ...generationConfig } = payload.generationConfig;
+        upstream = await callGeminiWithRetry(model, apiKey, JSON.stringify({ ...payload, generationConfig }));
+      } else {
+        // body 已經讀掉了，下面的錯誤處理還要再讀一次，所以原樣包回去
+        upstream = new Response(detail, { status: upstream.status });
+      }
+    }
   } catch (error) {
     if (error instanceof SyntaxError) return NextResponse.json({ error: "送出的內容不是合法的 JSON" }, { status: 400 });
     console.error("伺服器呼叫 Gemini 失敗", error);
