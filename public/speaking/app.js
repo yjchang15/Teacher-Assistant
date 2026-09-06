@@ -86,14 +86,53 @@ function diffWords(targetWords, heardWords) {
   return { matched, accuracy };
 }
 
+function utterance(text, lang = 'en-US') {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = lang;
+  utter.rate = 0.95;
+  return utter;
+}
+
 function speak(text, lang = 'en-US') {
   stopClip();
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = lang;
-  utter.rate = 0.95;
-  window.speechSynthesis.speak(utter);
+  window.speechSynthesis.speak(utterance(text, lang));
+}
+
+// ====== 邊收字邊唸 ======
+// AI 的回覆是一段一段串流回來的。整段收完才唸，學生就得多等一次；
+// 所以每收到一個完整句子就先丟進發音佇列，後面的句子會自動接著唸。
+
+let ttsPending = ''; // 還沒湊成完整句子、先留著的尾巴
+
+function speakReset() {
+  stopClip();
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  ttsPending = '';
+}
+
+function speakPush(delta) {
+  if (!window.speechSynthesis) return;
+  ttsPending += delta;
+  // 找出目前收到的最後一個句尾，把之前的整句都送出去唸
+  const boundary = /[.!?]["')\]]?(\s|$)/g;
+  let cut = -1;
+  let match;
+  while ((match = boundary.exec(ttsPending))) cut = match.index + match[0].length;
+  if (cut > 0) {
+    const sentence = ttsPending.slice(0, cut).trim();
+    ttsPending = ttsPending.slice(cut);
+    // 這裡不能 cancel，否則會打斷前一句；直接排隊接著唸
+    if (sentence) window.speechSynthesis.speak(utterance(sentence));
+  }
+}
+
+function speakFlush() {
+  if (!window.speechSynthesis) return;
+  const rest = ttsPending.trim();
+  ttsPending = '';
+  if (rest) window.speechSynthesis.speak(utterance(rest));
 }
 
 // ====== 錄下學生的聲音，讓他自己聽 ======
@@ -598,19 +637,35 @@ async function startChat() {
   recordBtn.disabled = true;
   showTyping();
 
-  const opening = await callChatApi(null, [
+  const opening = await streamAiTurn([
     { role: 'user', text: '(Please start our conversation now with your short opening line.)' },
   ]);
 
-  hideTyping();
   state.conversation.history.push({ role: 'model', text: opening });
   renderChatLog();
-  speak(opening);
   recordBtn.disabled = false;
+}
+
+// 送出一輪對話，字回來就顯示、句子成形就唸，回傳完整的回覆。
+async function streamAiTurn(history) {
+  speakReset();
+  let paint = null;
+  const text = await callChatApi(null, history, (delta, full) => {
+    if (!paint) paint = streamBubble();
+    paint(full);
+    speakPush(delta);
+  });
+  speakFlush();
+  hideTyping();
+  clearStreamBubble();
+  return text;
 }
 
 function renderChatLog() {
   const log = document.getElementById('chatLog');
+  // 「正在打字」和串流中的泡泡不屬於 history，重畫時要留著再接回去，
+  // 否則錄音檔晚一步好、觸發重畫，就會把還在串流的那句洗掉。
+  const transient = [document.getElementById('typingBubble'), document.getElementById('streamBubble')].filter(Boolean);
   log.innerHTML = '';
 
   state.conversation.history.forEach((turn, i) => {
@@ -636,6 +691,7 @@ function renderChatLog() {
     log.appendChild(div);
   });
 
+  transient.forEach((node) => log.appendChild(node));
   log.scrollTop = log.scrollHeight;
 }
 
@@ -656,6 +712,27 @@ function showTyping() {
 
 function hideTyping() {
   const bubble = document.getElementById('typingBubble');
+  if (bubble) bubble.remove();
+}
+
+// 字一邊回來一邊長出來的暫時泡泡。整句收完後會被 renderChatLog 取代成正式的那顆。
+function streamBubble() {
+  hideTyping();
+  const log = document.getElementById('chatLog');
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble ai';
+  bubble.id = 'streamBubble';
+  const text = document.createElement('span');
+  bubble.appendChild(text);
+  log.appendChild(bubble);
+  return (full) => {
+    text.textContent = full;
+    log.scrollTop = log.scrollHeight;
+  };
+}
+
+function clearStreamBubble() {
+  const bubble = document.getElementById('streamBubble');
   if (bubble) bubble.remove();
 }
 
@@ -701,26 +778,31 @@ async function handleChatRecord() {
       btn.textContent = '🎙️ 按住說話';
       isChatRecording = false;
 
-      const blob = await stopAudioCapture();
+      // 錄音檔只是給學生回放用的，AI 的回覆不需要等它。這裡先把收尾丟到背景，
+      // 免得 MediaRecorder 慢半拍（最久兩秒）就整輪對話都跟著慢兩秒。
+      const capture = stopAudioCapture();
       if (!heardText) {
+        await capture;
         if (!failed) status.textContent = '沒有聽到內容，請再試一次。';
         return;
       }
 
       const index = state.conversation.history.length;
       state.conversation.history.push({ role: 'user', text: heardText });
-      if (blob) state.conversation.audio[index] = URL.createObjectURL(blob);
       renderChatLog();
+      capture.then((blob) => {
+        if (!blob) return;
+        state.conversation.audio[index] = URL.createObjectURL(blob);
+        renderChatLog(); // 錄音好了才補上回放鈕
+      });
 
       status.textContent = '';
       btn.disabled = true;
       showTyping();
 
-      const aiText = await callChatApi(null, state.conversation.history);
-      hideTyping();
+      const aiText = await streamAiTurn(state.conversation.history);
       state.conversation.history.push({ role: 'model', text: aiText });
       renderChatLog();
-      speak(aiText);
       status.textContent = '';
       btn.disabled = false;
     },
@@ -749,18 +831,32 @@ async function saveRecord(payload) {
   }
 }
 
-async function callChatApi(systemPrompt, history) {
+// 伺服器改成串流純文字了：錯誤仍然是 JSON，成功則是一段一段的內文。
+// onDelta(delta, full) 每收到一塊就會被呼叫一次，回傳值是完整的整段文字。
+async function callChatApi(systemPrompt, history, onDelta) {
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ feedback: Boolean(systemPrompt), history, level: state.conversation.level }),
     });
-    const data = await res.json();
     if (!res.ok) {
-      return `（發生錯誤：${data.error || '未知錯誤'}）`;
+      let message = '未知錯誤';
+      try { message = (await res.json()).error || message; } catch { /* 錯誤頁不一定是 JSON */ }
+      return `（發生錯誤：${message}）`;
     }
-    return data.text;
+    if (!res.body) return await res.text();
+
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let full = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      full += value;
+      if (onDelta) onDelta(value, full);
+    }
+    return full;
   } catch (e) {
     return '（無法連線到伺服器，請稍後再試）';
   }
@@ -784,7 +880,9 @@ async function handleEndChat() {
     { role: 'user', text: '(This is the end of the conversation. Please give me feedback now.)' },
   ];
 
-  const feedback = await callChatApi(feedbackPrompt, historyWithRequest);
+  const feedback = await callChatApi(feedbackPrompt, historyWithRequest, (delta, full) => {
+    feedbackBox.textContent = full; // 回饋比較長，邊產生邊顯示才不會像當掉
+  });
   feedbackBox.textContent = feedback;
 
   saveRecord({
