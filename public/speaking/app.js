@@ -19,12 +19,40 @@ const speechSupported = !!SpeechRecognitionCtor;
 
 // ====== 工具函式 ======
 
+const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+// 辨識結果會把數字寫成 25，文章裡卻可能寫 twenty-five（或反過來）。
+// 兩邊都拆成英文字，這種寫法差異就不會被算成唸錯。
+function numberToWords(n) {
+  if (n < 20) return [ONES[n]];
+  if (n < 100) {
+    const rest = n % 10;
+    return rest ? [TENS[Math.floor(n / 10)], ONES[rest]] : [TENS[Math.floor(n / 10)]];
+  }
+  if (n < 1000) {
+    const head = [ONES[Math.floor(n / 100)], 'hundred'];
+    const rest = n % 100;
+    return rest ? head.concat(numberToWords(rest)) : head;
+  }
+  return null; // 太大的數字（年份、電話）就原樣比對
+}
+
 function normalizeWords(text) {
   return text
+    // 文章多半是從 Word 或網頁貼上來的，智慧引號要先轉成直式，
+    // 否則 doesn’t 會被切成 doesn + t，兩個字都算唸錯。
+    .replace(/[‘’ʼ]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
     .toLowerCase()
-    .replace(/[^a-z0-9'\s]/g, ' ')
+    // don't / dont 視為同一個字，撇號的有無不該影響發音分數
+    .replace(/'/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
-    .filter(Boolean);
+    .filter(Boolean)
+    .flatMap((word) => (/^\d+$/.test(word) ? numberToWords(Number(word)) || [word] : [word]));
 }
 
 // 以最長共同子序列(LCS)比對兩組單字，標記 target 每個字是否有被說出來
@@ -106,12 +134,28 @@ function stopAudioCapture() {
     const rec = mediaRecorder;
     mediaRecorder = null;
     if (!rec || rec.state === 'inactive') return resolve(null);
-    rec.onstop = () => {
-      rec.stream.getTracks().forEach((t) => t.stop());
-      const blob = new Blob(recordedChunks, { type: rec.mimeType || 'audio/webm' });
-      resolve(blob.size > 0 ? blob : null);
+
+    // 評分要等這個 Promise，所以絕對不能卡住：onstop 沒觸發或 stop() 丟例外時
+    // 就放棄回放，分數照樣要出得來。
+    let settled = false;
+    const finish = (blob) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { rec.stream.getTracks().forEach((t) => t.stop()); } catch { /* 已經關掉了 */ }
+      resolve(blob);
     };
-    rec.stop();
+    const timer = setTimeout(() => finish(null), 2000);
+
+    rec.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: rec.mimeType || 'audio/webm' });
+      finish(blob.size > 0 ? blob : null);
+    };
+    try {
+      rec.stop();
+    } catch {
+      finish(null);
+    }
   });
 }
 
@@ -411,6 +455,9 @@ async function handleReadingRecord(text) {
   await startAudioCapture();
 
   let heard = '';
+  // 按下「唸完了」時，最後一段常常還沒被判定為 final。那段字只存在 interim
+  // 裡，不留著的話整段唸完卻算不出分數。
+  let tail = '';
   let failed = false;
 
   readingRecognizer = createRecognizer({
@@ -428,6 +475,8 @@ async function handleReadingRecord(text) {
     },
     onResult: ({ finalText, interimText }) => {
       if (finalText) heard = `${heard} ${finalText}`.trim();
+      // interim 與 final 是不重疊的兩段，所以留著當結尾備援不會重複計算
+      tail = interimText;
       // 一邊唸一邊顯示聽到的字，學生才知道有沒有收到音
       status.textContent = `${heard} ${interimText}`.trim() || '請開始朗讀...';
     },
@@ -438,12 +487,13 @@ async function handleReadingRecord(text) {
       readingRecognizer = null;
 
       const blob = await stopAudioCapture();
-      if (!heard) {
+      const spoken = `${heard} ${tail}`.trim();
+      if (!spoken) {
         if (!failed) status.textContent = '沒有聽到內容，請再試一次。';
         return;
       }
       // 分數只看唸出來的字對不對，不摻辨識信心值，比較好跟學生解釋
-      showReadingResult(text, heard, null, blob);
+      showReadingResult(text, spoken, null, blob);
     },
   });
 
