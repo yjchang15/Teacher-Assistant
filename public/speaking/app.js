@@ -168,7 +168,14 @@ function speakFlush() {
 // SpeechRecognition 只會給文字、拿不到聲音，所以另外用 MediaRecorder 同時錄一份。
 // 錄音只留在瀏覽器記憶體裡，不會上傳，換下一句就丟掉。
 
-const audioSupported = !!(
+// 手機的麥克風一次只服務一個使用者。MediaRecorder 先接上去之後，語音辨識就
+// 一個字都收不到，學生整段唸完只換來「沒有聽到內容」。電腦和平板沒有這個限制，
+// 兩邊可以同時開著，所以只有手機不能用。回放自己的錄音只是加分，辨識不到的話
+// 整個練習都沒意義，所以手機上把麥克風整支讓給辨識。
+const isPhone = /iPhone|iPod/.test(navigator.userAgent)
+  || (/Android/.test(navigator.userAgent) && /Mobile/.test(navigator.userAgent));
+
+const audioSupported = !isPhone && !!(
   navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder
 );
 let mediaRecorder = null;
