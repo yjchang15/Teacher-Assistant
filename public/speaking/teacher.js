@@ -185,6 +185,9 @@ function renderSummary() {
     head.removeChild(head.firstElementChild);
   }
 
+  // 手機版靠這個 class 決定要釘住幾欄（多一欄班級時，班級和座號要一起釘）
+  $('summaryTable').classList.toggle('has-class-col', showClassColumn);
+
   renderClassStats(rows);
   $('emptyHint').hidden = rows.some((s) => s.lastAt);
 

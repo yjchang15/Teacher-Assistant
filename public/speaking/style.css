@@ -1002,3 +1002,103 @@ code {
   .class-card-head .danger-btn { order: 4; }
   .seat-chips { padding: var(--s3); }
 }
+
+/* ==========================================================================
+   老師專區的手機版
+   老師常常是站在教室裡、單手拿手機看成績，所以這裡的重點是：
+   一次只捲一個方向、重要欄位不會被捲走、按鈕點得到。
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  /* 手機上把 topbar 的高度讓給內容。原本 .tabs 寫死 top: 49px，
+     但標題與連結在窄螢幕會折成兩三行（實測 90px），分頁就被壓在 topbar 底下。
+     topbar 不再吸頂之後，分頁貼齊 top: 0 就不會再對不準。 */
+  .topbar { position: static; }
+  .topbar-inner { flex-wrap: wrap; gap: var(--s2); padding: var(--s3) var(--s4); }
+  .topbar h1 { font-size: var(--fs-md); }
+  .topbar-inner.wide .link-btn { margin-left: 0; }
+  /* 連結排成一列橫向捲動，不要折行把標題擠開 */
+  .topbar-inner .btn-row.compact {
+    flex-basis: 100%;
+    flex-wrap: nowrap;
+    gap: var(--s4);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .topbar-inner .btn-row.compact::-webkit-scrollbar { display: none; }
+  .topbar-inner .btn-row.compact .link-btn { flex: 0 0 auto; white-space: nowrap; }
+
+  .tabs { top: 0; margin-bottom: var(--s4); }
+
+  /* 手機鍵盤：欄位字級小於 16px 時 iOS Safari 會在點下去時自動放大整頁，
+     放大後版面就跑掉了，所以表單元件一律 16px。 */
+  input[type="text"], input[type="password"], input[type="number"],
+  select, textarea { font-size: 16px; }
+
+  .class-picker { width: 100%; }
+  .class-picker select { flex: 1; min-width: 0; }
+  #scoreClass { width: 100%; min-width: 0; font-size: 16px; }
+
+  /* 手指按得到：44px 是可靠的最小觸控高度 */
+  .btn-row.compact button,
+  .primary-btn, .secondary-btn, .danger-btn { min-height: 44px; }
+  .topbar-inner .link-btn { min-height: 44px; display: inline-flex; align-items: center; }
+
+  /* 三顆按鈕平均分攤兩行，不要一行兩顆、一行一顆那樣參差 */
+  .row-between > .btn-row.compact { width: 100%; }
+  .row-between > .btn-row.compact button { flex: 1 1 calc(50% - var(--s2)); }
+  .row-between > .btn-row.compact button:last-child { flex-basis: 100%; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+  .stat-item { min-width: 0; padding: var(--s3) var(--s2); }
+  .stat-value { font-size: var(--fs-lg); }
+  .stat-label { font-size: 11px; }
+
+  .filter-row { width: 100%; }
+  .filter-row select { flex: 1 1 100%; min-width: 0; }
+
+  /* 表格橫向捲動時，座號要一直看得到，不然捲到「最後練習時間」
+     就不知道那一列是誰的了。 */
+  .table-wrap { max-height: 60vh; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .data-table th, .data-table td { padding: 9px 10px; }
+  .data-table thead th:first-child,
+  .data-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+  }
+  .data-table thead th:first-child { z-index: 2; }
+  .data-table tbody tr:nth-child(even) td:first-child { background: var(--surface-alt); }
+  /* 釘住的最後一欄畫道陰影，讓老師知道右邊還有欄位可以捲 */
+  .data-table :is(thead th, tbody td):first-child {
+    box-shadow: 1px 0 0 var(--border-light), 6px 0 6px -6px rgba(60, 64, 67, .28);
+  }
+  #summaryTable.has-class-col :is(thead th, tbody td):first-child { box-shadow: none; }
+  #summaryTable.has-class-col :is(thead th, tbody td):nth-child(2) {
+    box-shadow: 1px 0 0 var(--border-light), 6px 0 6px -6px rgba(60, 64, 67, .28);
+  }
+
+  /* 「全部班級」時第一欄是班級，光釘它認不出是誰，所以連座號一起釘。
+     兩欄合計約 116px，在 375px 的螢幕上還留得下右邊的分數。 */
+  #summaryTable.has-class-col thead th:first-child,
+  #summaryTable.has-class-col tbody td:first-child { width: 56px; min-width: 56px; }
+  #summaryTable.has-class-col thead th:nth-child(2),
+  #summaryTable.has-class-col tbody td:nth-child(2) {
+    position: sticky;
+    left: 56px;
+    background: var(--surface);
+  }
+  #summaryTable.has-class-col thead th:nth-child(2) { z-index: 2; }
+  #summaryTable.has-class-col tbody tr:nth-child(even) td:nth-child(2) { background: var(--surface-alt); }
+
+  .detail-head { gap: var(--s1) var(--s2); }
+  .article-new textarea, .article-card textarea { width: 100%; }
+}
+
+/* 最窄的一批手機（iPhone SE 之類）再收一次，避免數字被折行 */
+@media (max-width: 380px) {
+  .stat-value { font-size: var(--fs-md); }
+  .stat-item { padding: var(--s3) var(--s1); }
+  .data-table th, .data-table td { padding: 8px; }
+}
