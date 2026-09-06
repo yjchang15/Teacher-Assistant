@@ -93,11 +93,40 @@ function utterance(text, lang = 'en-US') {
   return utter;
 }
 
+// 手機瀏覽器只有在使用者剛碰過畫面時才准許網頁發出聲音。AI 的回覆要等網路
+// 回來才唸得出來，那時候早就不算「剛碰過」了，於是整堂課都是靜音的——電腦
+// 和平板沒有這條限制，所以只有手機出問題。這裡在第一次觸碰時先唸一段沒有
+// 音量的空白，把發聲權限拿到手，之後排進佇列的句子就都放得出來。
+let speechUnlocked = false;
+
+function unlockSpeech() {
+  if (speechUnlocked || !window.speechSynthesis) return;
+  try {
+    const warmUp = new SpeechSynthesisUtterance(' ');
+    warmUp.volume = 0;
+    window.speechSynthesis.speak(warmUp);
+    speechUnlocked = true;
+  } catch (e) {
+    /* 這次拿不到就算了，下一次觸碰再試 */
+  }
+}
+
+document.addEventListener('pointerdown', unlockSpeech, true);
+document.addEventListener('touchend', unlockSpeech, true);
+document.addEventListener('keydown', unlockSpeech, true);
+
+// iOS 會在講完一句或切走分頁之後把佇列擱置著，不 resume 就再也不出聲
+function speakNow(utter) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.speak(utter);
+  if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+}
+
 function speak(text, lang = 'en-US') {
   stopClip();
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance(text, lang));
+  speakNow(utterance(text, lang));
 }
 
 // ====== 邊收字邊唸 ======
@@ -124,7 +153,7 @@ function speakPush(delta) {
     const sentence = ttsPending.slice(0, cut).trim();
     ttsPending = ttsPending.slice(cut);
     // 這裡不能 cancel，否則會打斷前一句；直接排隊接著唸
-    if (sentence) window.speechSynthesis.speak(utterance(sentence));
+    if (sentence) speakNow(utterance(sentence));
   }
 }
 
@@ -132,7 +161,7 @@ function speakFlush() {
   if (!window.speechSynthesis) return;
   const rest = ttsPending.trim();
   ttsPending = '';
-  if (rest) window.speechSynthesis.speak(utterance(rest));
+  if (rest) speakNow(utterance(rest));
 }
 
 // ====== 錄下學生的聲音，讓他自己聽 ======
