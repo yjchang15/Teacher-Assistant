@@ -109,6 +109,36 @@
     eq('score', $('scoreCircle').textContent, '100');
   }
 
+  async function readingAndroidDropsReplayedPhrases() {
+    currentName = 'reading · android: replayed phrases are merged once';
+    T.mode = 'android';
+    await enterReading();
+    $('recordBtn').click();
+    await until('the microphone', () => T.live && T.live._running);
+
+    // Some Android engines repeat a final result inside one session.
+    T.hear('it does not matter', true);
+    T.hear('it does not matter', true);
+    T.hear('it does not matter', true);
+    eq('duplicate result entries appear once', $('recordStatus').textContent, 'it does not matter');
+
+    // They can also replay the last phrase after each automatic restart.
+    T.enginePause();
+    await until('first recognition restart', () => T.live && T.live._running);
+    T.hear('it does not matter', true);
+    T.enginePause();
+    await until('second recognition restart', () => T.live && T.live._running);
+    T.hear('it does not matter at all i can wait for you here', true);
+    eq('replayed sessions stay merged in the subtitle', $('recordStatus').textContent,
+      'it does not matter at all i can wait for you here');
+
+    $('recordBtn').click();
+    await scoreShown();
+    eq('final transcript contains one copy', $('heardText').textContent,
+      'it does not matter at all i can wait for you here');
+    eq('score', $('scoreCircle').textContent, '100');
+  }
+
   async function readingPartialScoresLower() {
     currentName = 'reading · a partial reading scores lower';
     T.mode = 'android';
@@ -422,6 +452,7 @@
     const desktop = [
       readingDesktopWaitsForButton,
       readingAndroidSurvivesPauses,
+      readingAndroidDropsReplayedPhrases,
       readingPartialScoresLower,
       readingScoresPunctuationFairly,
       readingBackButtonStops,
@@ -458,4 +489,14 @@
     const failed = results.filter((r) => !r.ok);
     return { total: results.length, passed: results.length - failed.length, failed };
   };
+
+  const autoSuite = new URLSearchParams(location.search).get('run');
+  if (autoSuite) {
+    window.addEventListener('load', async () => {
+      const output = document.createElement('pre');
+      output.id = 'testResults';
+      output.textContent = JSON.stringify(await window.runTests(autoSuite));
+      document.body.appendChild(output);
+    });
+  }
 })();

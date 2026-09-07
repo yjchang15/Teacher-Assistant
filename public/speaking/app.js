@@ -86,6 +86,29 @@ function diffWords(targetWords, heardWords) {
   return { matched, accuracy };
 }
 
+// Mobile speech engines may replay the end of the previous result when a
+// recognition session restarts. Join pieces by their largest word overlap so
+// "four seasons" + "four seasons in Taiwan" becomes one continuous phrase,
+// while a genuinely new non-overlapping phrase is still appended.
+function mergeTranscriptParts(parts) {
+  const merged = [];
+  for (const part of parts) {
+    const words = String(part || '').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) continue;
+    const comparable = words.map((word) => word.toLowerCase().replace(/[^a-z0-9']/g, ''));
+    let overlap = Math.min(merged.length, words.length);
+    while (overlap > 0) {
+      const offset = merged.length - overlap;
+      const same = comparable.slice(0, overlap).every((word, i) =>
+        word === merged[offset + i].toLowerCase().replace(/[^a-z0-9']/g, ''));
+      if (same) break;
+      overlap--;
+    }
+    merged.push(...words.slice(overlap));
+  }
+  return merged.join(' ');
+}
+
 function utterance(text, lang = 'en-US') {
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = lang;
@@ -294,19 +317,23 @@ function createRecognizer({ onResult, onStart, onEnd, onError, continuous = fals
   // 照著它把新的字接到後面，同一段就會被接上好幾十次——學生唸兩句，畫面卻
   // 跑出整篇重複的字。從頭重組就不會有這個問題，代價只是每次多跑幾十個字。
   rec.onresult = (event) => {
-    let finalText = '';
-    let interimText = '';
+    const finalParts = [];
+    const interimParts = [];
     let confidence = null;
     for (let i = 0; i < event.results.length; i++) {
       const result = event.results[i];
       if (result.isFinal) {
-        finalText += result[0].transcript + ' ';
+        finalParts.push(result[0].transcript);
         confidence = result[0].confidence || confidence;
       } else {
-        interimText += result[0].transcript + ' ';
+        interimParts.push(result[0].transcript);
       }
     }
-    onResult({ finalText: finalText.trim(), interimText: interimText.trim(), confidence });
+    onResult({
+      finalText: mergeTranscriptParts(finalParts),
+      interimText: mergeTranscriptParts(interimParts),
+      confidence,
+    });
   };
   return rec;
 }
@@ -558,7 +585,7 @@ async function handleReadingRecord(text) {
   // 這一段目前聽到的全部（含還沒定案的 interim：按下「唸完了」時最後一句
   // 常常還是 interim，丟掉的話整段唸完卻算不出分數）
   let current = '';
-  const spokenSoFar = () => [...done, current].join(' ').trim();
+  const spokenSoFar = () => mergeTranscriptParts([...done, current]);
 
   let failed = false;
   let segments = 0;
@@ -580,7 +607,7 @@ async function handleReadingRecord(text) {
     // 學生按了返回，這個畫面已經不在了，沒有地方可以顯示分數
     if (!document.getElementById('resultBox')) return;
 
-    const spoken = done.join(' ').trim();
+    const spoken = mergeTranscriptParts(done);
     if (!spoken) {
       if (!failed) status.textContent = '沒有聽到內容，請再試一次。';
       return;
@@ -606,7 +633,7 @@ async function handleReadingRecord(text) {
       status.textContent = `辨識發生問題（${e.error}），請再試一次。`;
     },
     onResult: ({ finalText, interimText }) => {
-      current = `${finalText} ${interimText}`.trim();
+      current = mergeTranscriptParts([finalText, interimText]);
       // 一邊唸一邊顯示聽到的字，學生才知道有沒有收到音
       status.textContent = spokenSoFar() || '請開始朗讀...';
     },
