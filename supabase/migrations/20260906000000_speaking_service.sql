@@ -19,6 +19,17 @@ CREATE TABLE IF NOT EXISTS public.speaking_practice_records (
     created_at  text NOT NULL DEFAULT ''
 );
 
+-- CREATE TABLE IF NOT EXISTS does not add columns when an earlier version of
+-- the speaking service already created this table. These idempotent ALTERs
+-- upgrade that legacy shape so new scores can be saved without discarding any
+-- existing practice records.
+ALTER TABLE public.speaking_practice_records
+    ADD COLUMN IF NOT EXISTS class_id bigint REFERENCES public.classes(id) ON DELETE SET NULL;
+ALTER TABLE public.speaking_practice_records
+    ADD COLUMN IF NOT EXISTS class_name text;
+ALTER TABLE public.speaking_practice_records
+    ADD COLUMN IF NOT EXISTS seat integer;
+
 CREATE INDEX IF NOT EXISTS speaking_records_class_created
     ON public.speaking_practice_records (class_id, created_at DESC);
 
