@@ -173,7 +173,7 @@ export async function appendSpeakingRecord(record: NormalizedRecord): Promise<{ 
   const { classId, ...stored } = row;
   await execute(
     `INSERT INTO speaking_practice_records(id,class_id,class_name,seat,record_data,created_at)
-     VALUES ($1,$2,$3,$4,$5::jsonb,$6)`,
+     VALUES ($1,$2,$3,$4,$5::text::jsonb,$6)`,
     [id, classId, classes[0].name, Number(row.seatNo), JSON.stringify({ ...stored, className: classes[0].name }), now],
   );
   return { id };
