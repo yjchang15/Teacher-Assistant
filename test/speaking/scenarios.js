@@ -139,6 +139,28 @@
     eq('score', $('scoreCircle').textContent, '100');
   }
 
+  async function transcriptMergeMatrix() {
+    currentName = 'reading · transcript merge matrix';
+    const target = 'The weather is warm but not hot and the four seasons are beautiful.';
+    const cases = [
+      [['the weather is warm', 'but not hot'], 'the weather is warm but not hot', 'no overlap'],
+      [['the weather is warm', 'warm but not hot'], 'the weather is warm but not hot', 'one-word overlap'],
+      [['the four seasons', 'four seasons are beautiful'], 'the four seasons are beautiful', 'phrase overlap'],
+      [['The weather is warm.', 'WARM but not hot'], 'The weather is warm. but not hot', 'case and punctuation'],
+      [Array(100).fill('the four seasons'), 'the four seasons', 'one hundred exact replays'],
+      [['', 'the weather', '', 'is warm'], 'the weather is warm', 'empty engine events'],
+    ];
+    for (const [parts, expected, label] of cases) {
+      eq(label, mergeTranscriptParts(parts, target), expected);
+    }
+    eq('intentional repeated word is preserved',
+      mergeTranscriptParts(['it is very', 'very good'], 'It is very very good'),
+      'it is very very good');
+    eq('intentional repeated phrase is preserved',
+      mergeTranscriptParts(['go now', 'go now please'], 'Go now go now please'),
+      'go now go now please');
+  }
+
   async function readingPartialScoresLower() {
     currentName = 'reading · a partial reading scores lower';
     T.mode = 'android';
@@ -453,6 +475,7 @@
       readingDesktopWaitsForButton,
       readingAndroidSurvivesPauses,
       readingAndroidDropsReplayedPhrases,
+      transcriptMergeMatrix,
       readingPartialScoresLower,
       readingScoresPunctuationFairly,
       readingBackButtonStops,
