@@ -90,8 +90,9 @@ function diffWords(targetWords, heardWords) {
 // recognition session restarts. Join pieces by their largest word overlap so
 // "four seasons" + "four seasons in Taiwan" becomes one continuous phrase,
 // while a genuinely new non-overlapping phrase is still appended.
-function mergeTranscriptParts(parts) {
+function mergeTranscriptParts(parts, targetText = '') {
   const merged = [];
+  const targetWords = normalizeWords(targetText);
   for (const part of parts) {
     const words = String(part || '').trim().split(/\s+/).filter(Boolean);
     if (!words.length) continue;
@@ -103,6 +104,16 @@ function mergeTranscriptParts(parts) {
         word === merged[offset + i].toLowerCase().replace(/[^a-z0-9']/g, ''));
       if (same) break;
       overlap--;
+    }
+    // Do not erase a repetition the article actually asks the student to say,
+    // such as "very very good". Only a consecutive duplicate in the target can
+    // make the repeated boundary intentional.
+    if (overlap && targetWords.length) {
+      const repeated = comparable.slice(0, overlap);
+      const doubled = [...repeated, ...repeated];
+      const targetHasDouble = targetWords.some((_, start) =>
+        doubled.every((word, i) => targetWords[start + i] === word));
+      if (targetHasDouble) overlap = 0;
     }
     merged.push(...words.slice(overlap));
   }
@@ -330,8 +341,10 @@ function createRecognizer({ onResult, onStart, onEnd, onError, continuous = fals
       }
     }
     onResult({
-      finalText: mergeTranscriptParts(finalParts),
-      interimText: mergeTranscriptParts(interimParts),
+      finalText: finalParts.join(' ').trim(),
+      interimText: interimParts.join(' ').trim(),
+      finalParts,
+      interimParts,
       confidence,
     });
   };
@@ -585,7 +598,7 @@ async function handleReadingRecord(text) {
   // 這一段目前聽到的全部（含還沒定案的 interim：按下「唸完了」時最後一句
   // 常常還是 interim，丟掉的話整段唸完卻算不出分數）
   let current = '';
-  const spokenSoFar = () => mergeTranscriptParts([...done, current]);
+  const spokenSoFar = () => mergeTranscriptParts([...done, current], text);
 
   let failed = false;
   let segments = 0;
@@ -607,7 +620,7 @@ async function handleReadingRecord(text) {
     // 學生按了返回，這個畫面已經不在了，沒有地方可以顯示分數
     if (!document.getElementById('resultBox')) return;
 
-    const spoken = mergeTranscriptParts(done);
+    const spoken = mergeTranscriptParts(done, text);
     if (!spoken) {
       if (!failed) status.textContent = '沒有聽到內容，請再試一次。';
       return;
@@ -632,8 +645,8 @@ async function handleReadingRecord(text) {
       failed = true;
       status.textContent = `辨識發生問題（${e.error}），請再試一次。`;
     },
-    onResult: ({ finalText, interimText }) => {
-      current = mergeTranscriptParts([finalText, interimText]);
+    onResult: ({ finalParts, interimParts }) => {
+      current = mergeTranscriptParts([...finalParts, ...interimParts], text);
       // 一邊唸一邊顯示聽到的字，學生才知道有沒有收到音
       status.textContent = spokenSoFar() || '請開始朗讀...';
     },
