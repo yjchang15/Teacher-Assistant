@@ -82,6 +82,12 @@ CREATE TABLE IF NOT EXISTS speaking_practice_records (
     created_at  TEXT NOT NULL DEFAULT ''
 );
 
+-- Upgrade the original speaking-service table shape. CREATE TABLE IF NOT
+-- EXISTS does not add columns to a table that is already present.
+ALTER TABLE speaking_practice_records ADD COLUMN IF NOT EXISTS class_id bigint REFERENCES classes(id) ON DELETE SET NULL;
+ALTER TABLE speaking_practice_records ADD COLUMN IF NOT EXISTS class_name TEXT;
+ALTER TABLE speaking_practice_records ADD COLUMN IF NOT EXISTS seat INTEGER;
+
 CREATE INDEX IF NOT EXISTS speaking_records_class_created
     ON speaking_practice_records (class_id, created_at DESC);
 
