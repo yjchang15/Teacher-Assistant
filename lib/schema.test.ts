@@ -9,7 +9,7 @@ test("schema upgrades a legacy speaking records table before creating its index"
     await db.query(`
       CREATE TABLE speaking_practice_records (
         id TEXT PRIMARY KEY,
-        record_data JSONB NOT NULL,
+        record_data JSONB NOT NULL CHECK (jsonb_typeof(record_data) = 'object'),
         created_at TEXT NOT NULL DEFAULT ''
       )
     `);
@@ -36,7 +36,7 @@ test("schema upgrades a legacy speaking records table before creating its index"
     await db.query("INSERT INTO class_seats(class_id,seat) VALUES ($1,1)", [classId]);
     await db.query(
       `INSERT INTO speaking_practice_records(id,class_id,class_name,seat,record_data,created_at)
-       VALUES ('test-record',$1,'206',1,$2::jsonb,'2026-09-07T00:00:00.000Z')`,
+       VALUES ('test-record',$1,'206',1,$2::text::jsonb,'2026-09-07T00:00:00.000Z')`,
       [classId, JSON.stringify({ type: "reading", score: 100 })],
     );
 
