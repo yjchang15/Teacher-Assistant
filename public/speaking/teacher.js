@@ -103,6 +103,7 @@ function emptyState(icon, text) {
 
 async function loadRecords() {
   showLoading($('detailList'));
+  showDeleteResult('');
   const res = await api('/api/teacher/records');
   if (!res.ok) {
     $('detailCount').textContent = '讀取紀錄失敗，請確認伺服器是否正常執行。';
@@ -217,6 +218,19 @@ function renderSummary() {
       if (i === avgIndex && s.readingAvg !== null) td.className = 'score-cell ' + scoreClass(s.readingAvg);
       tr.appendChild(td);
     });
+
+    // 這一列的刪除：只清掉這位學生的紀錄，座號本身留在名冊上
+    const action = document.createElement('td');
+    action.className = 'action-col';
+    if (practiced) {
+      const del = document.createElement('button');
+      del.className = 'danger-btn tiny-btn';
+      del.textContent = '刪除紀錄';
+      del.onclick = () => deleteStudentRecords(s);
+      action.appendChild(del);
+    }
+    tr.appendChild(action);
+
     tbody.appendChild(tr);
   }
 }
@@ -298,8 +312,20 @@ function renderDetails() {
   }
 
   for (const r of records) {
-    list.appendChild(r.type === 'reading' ? readingRow(r) : conversationRow(r));
+    const row = r.type === 'reading' ? readingRow(r) : conversationRow(r);
+    // 加在 rowShell 之外：朗讀列的分數也是後來才掛上去的，這樣刪除鈕才會排在最右邊
+    row.querySelector('.detail-head').appendChild(recordDeleteButton(r));
+    list.appendChild(row);
   }
+}
+
+function recordDeleteButton(r) {
+  const button = document.createElement('button');
+  button.className = 'danger-btn tiny-btn detail-del';
+  button.textContent = '刪除';
+  button.title = '刪除這一筆練習紀錄';
+  button.onclick = () => deleteRecord(r);
+  return button;
 }
 
 function rowShell(r, badgeText) {
@@ -628,6 +654,53 @@ async function deleteClass(cls) {
   if (!confirm(`確定要刪除「${cls.name}」嗎？\n（已經留下的練習紀錄不會被刪掉）`)) return;
   const res = await api(`/api/teacher/classes/${cls.id}`, { method: 'DELETE' });
   if (res.ok) await loadClasses();
+}
+
+// ====== 刪除紀錄 ======
+
+function showDeleteResult(text, error = false) {
+  const el = $('deleteResult');
+  if (!el) return;
+  el.className = error ? 'warning' : 'hint';
+  el.textContent = text;
+}
+
+// 刪除一律先在 Supabase 留備份，回來的 backup 就是那份快照的 ID
+async function deleteRecords(params, confirmText) {
+  if (!confirm(confirmText)) return null;
+  const res = await api('/api/teacher/records?' + params.toString(), { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    showDeleteResult(`刪除失敗：${data.error || '未知錯誤'}`, true);
+    return null;
+  }
+  await loadRecords();
+  return data;
+}
+
+async function deleteRecord(r) {
+  const who = r.className ? `${r.className} ${r.student} 號` : `${r.student} 號`;
+  const what = r.type === 'reading' ? `朗讀 ${r.score} 分` : `對話 ${r.userTurnCount} 輪`;
+  const data = await deleteRecords(
+    new URLSearchParams({ id: r.id }),
+    `確定要刪除 ${who}在 ${formatTime(r.createdAt)} 的這筆紀錄嗎？
+（${what}；系統會先留下備份）`
+  );
+  if (data) showDeleteResult(`已刪除 1 筆紀錄，備份 ID：${data.backup}`);
+}
+
+async function deleteStudentRecords(s) {
+  const who = s.className ? `${s.className} ${s.student} 號` : `${s.student} 號`;
+  const data = await deleteRecords(
+    new URLSearchParams({ className: s.className || '', student: s.student }),
+    `確定要刪除 ${who}的所有練習紀錄嗎？
+（朗讀與對話都會刪掉，座號會留在名冊上；系統會先留下備份）`
+  );
+  if (data) {
+    showDeleteResult(data.cleared
+      ? `已刪除 ${who}的 ${data.cleared} 筆紀錄，備份 ID：${data.backup}`
+      : `${who}目前沒有可刪除的紀錄。`);
+  }
 }
 
 // ====== 匯出與清空 ======

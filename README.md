@@ -82,5 +82,7 @@ idempotent migrations once per bump.
 - **口說文章** (`speaking_articles`) — teacher-maintained reading material.
 - **口說練習紀錄** (`speaking_practice_records`) — references the shared class
   and seat while preserving a class-name snapshot for historical reports.
-- **口說備份** (`speaking_practice_record_backups`) — full snapshot created
-  transactionally before the teacher clears speaking records.
+- **口說備份** (`speaking_practice_record_backups`) — snapshot created
+  transactionally before any speaking record is deleted. The teacher can remove
+  a single record, one student's records, or the whole table; each deletion
+  writes its own snapshot first, so nothing is lost without a copy.
