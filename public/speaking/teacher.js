@@ -27,6 +27,8 @@ function scoreClass(score) {
 }
 
 // ====== 頁籤 ======
+// 進來一律停在成績檢視：那是老師最常看的，另外兩個分頁是偶爾才用的維護動作，
+// 不記上次停在哪，免得一開啟就對著「資料清空」。
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -37,22 +39,6 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach((panel) => {
     panel.hidden = panel.dataset.panel !== name;
   });
-  try {
-    localStorage.setItem('teacherTab', name);
-  } catch (e) {
-    /* 瀏覽器擋住儲存也沒關係，只是下次會回到第一個頁籤 */
-  }
-}
-
-function restoreTab() {
-  let name = null;
-  try {
-    name = localStorage.getItem('teacherTab');
-  } catch (e) {
-    /* 忽略 */
-  }
-  const exists = name && document.querySelector(`.tab-btn[data-tab="${name}"]`);
-  switchTab(exists ? name : 'scores');
 }
 
 // 頁籤上的數字，讓老師不用切過去也知道有多少筆
@@ -69,7 +55,7 @@ async function init() {
 
 async function showDashboard() {
   $('dashboard').hidden = false;
-  restoreTab();
+  switchTab('scores');
   // 名冊要先載好，成績頁的班級選單才知道有哪些班可選
   await loadClasses();
   // 其餘一次載齊，切頁籤才不會每次都要等
