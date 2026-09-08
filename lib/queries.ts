@@ -109,21 +109,42 @@ export async function getMissingDetails(classId: number, start: string, end: str
     WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3 ORDER BY ar.seat,a.date,a.id`, [classId, start, end])).map((r) => num(r, ["seat"]));
 }
 
-export interface ClassMissingSummary { assignment_id: number; date: string; title: string; description: string; seats: string; }
-export async function getClassMissingSummary(classId: number, start: string, end: string): Promise<ClassMissingSummary[]> {
-  return (await query<ClassMissingSummary>(`SELECT a.id assignment_id,a.date,a.title,a.description,
-    STRING_AGG(ar.seat::text, ',' ORDER BY ar.seat) seats
-    FROM assignments a JOIN assignment_records ar ON ar.assignment_id=a.id
-    WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3
-    GROUP BY a.id,a.date,a.title,a.description ORDER BY a.date,a.id`, [classId, start, end])).map((row) => num(row, ["assignment_id"]));
+// 繳交進度：當天每個作業項目都要出現，連一個都沒缺交的也要（LEFT JOIN），
+// 這樣「全班已交」才看得出來，而不是整列消失。
+export interface AssignmentProgress { assignment_id: number; title: string; description: string; missing_seats: number[]; }
+export async function getClassSubmissionProgress(classId: number, date: string): Promise<AssignmentProgress[]> {
+  if (!classId || !date) return [];
+  const rows = await query<{ assignment_id: number; title: string; description: string; seats: string | null }>(
+    `SELECT a.id assignment_id,a.title,a.description,
+      STRING_AGG(ar.seat::text, ',' ORDER BY ar.seat) seats
+    FROM assignments a LEFT JOIN assignment_records ar ON ar.assignment_id=a.id
+    WHERE a.class_id=$1 AND a.date=$2
+    GROUP BY a.id,a.title,a.description ORDER BY a.id`,
+    [classId, date],
+  );
+  return rows.map((row) => ({
+    assignment_id: Number(row.assignment_id),
+    title: row.title,
+    description: row.description,
+    missing_seats: row.seats ? row.seats.split(",").map(Number) : [],
+  }));
 }
 
-export interface MaintenanceMissingRecord { id: number; seat: number; title: string; description: string; }
-export async function getMaintenanceMissingRecords(classId: number, date: string): Promise<MaintenanceMissingRecord[]> {
-  return (await query<MaintenanceMissingRecord>(`SELECT ar.id,ar.seat,a.title,a.description FROM assignment_records ar
-    JOIN assignments a ON a.id=ar.assignment_id WHERE a.class_id=$1 AND a.date=$2 ORDER BY a.id,ar.seat`, [classId, date])).map((row) => num(row, ["id", "seat"]));
+// 補交：只把那一格缺交紀錄拿掉。和 toggleMissingSeat 不同——重複按不會反手
+// 把紀錄補回去，繳交進度上連點兩下才不會又變成缺交。
+export async function clearMissingSeat(assignmentId: number, seat: number): Promise<void> {
+  if (!assignmentId || !seat) return;
+  await execute("DELETE FROM assignment_records WHERE assignment_id=$1 AND seat=$2", [assignmentId, seat]);
 }
-export async function deleteAssignmentRecord(id: number): Promise<void> { if (id) await execute("DELETE FROM assignment_records WHERE id=$1", [id]); }
+
+// 「復原」按鈕用的：把剛才誤標成補交的座號放回缺交名單。
+export async function markMissingSeat(assignmentId: number, seat: number): Promise<void> {
+  if (!assignmentId || !Number.isInteger(seat) || seat < 1 || seat > MAX_SEAT) return;
+  await execute(
+    "INSERT INTO assignment_records (assignment_id,seat,created_at) VALUES ($1,$2,$3) ON CONFLICT (assignment_id,seat) DO NOTHING",
+    [assignmentId, seat, new Date().toISOString()],
+  );
+}
 
 // ── 作業項目 ───────────────────────────────────────────────────────────────────
 // Every item is created by the teacher — nothing is seeded, so all of them can

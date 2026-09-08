@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const sections = [
-  { label: "日常作業", items: [{ href: "/", icon: "bi-pencil-square", label: "作業登記", exact: true }] },
-  { label: "追蹤報表", items: [
+  { label: "日常作業", items: [
+    { href: "/", icon: "bi-pencil-square", label: "作業登記", exact: true },
     { href: "/admin/class-summary", icon: "bi-table", label: "繳交進度" },
   ] },
   { label: "英文口說", items: [
@@ -15,7 +15,6 @@ const sections = [
   ] },
   { label: "系統管理", items: [
     { href: "/admin/classes", icon: "bi-mortarboard", label: "班級與座號" },
-    { href: "/admin/maintenance", icon: "bi-tools", label: "缺交資料維護" },
   ] },
 ] as const;
 
