@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { clearSpeakingRecords, getSpeakingRecords, getSpeakingSummaries } from "@/lib/speaking";
+import { deleteSpeakingRecords, getSpeakingRecords, getSpeakingSummaries } from "@/lib/speaking";
+import { parseSpeakingDeleteFilter } from "@/lib/speaking-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +14,14 @@ export async function GET() {
   }
 }
 
-export async function DELETE() {
+// ?id=… 刪一筆、?className=…&student=… 刪一位學生、不帶參數則清空全部。
+export async function DELETE(request: Request) {
+  const { filter, error } = parseSpeakingDeleteFilter(new URL(request.url).searchParams);
+  if (!filter) return NextResponse.json({ error }, { status: 400 });
   try {
-    return NextResponse.json({ ok: true, ...(await clearSpeakingRecords()) });
-  } catch (error) {
-    console.error("備份並清空口說練習紀錄失敗", error);
-    return NextResponse.json({ error: "伺服器無法清空練習紀錄" }, { status: 500 });
+    return NextResponse.json({ ok: true, ...(await deleteSpeakingRecords(filter)) });
+  } catch (err) {
+    console.error("備份並刪除口說練習紀錄失敗", err);
+    return NextResponse.json({ error: "伺服器無法刪除練習紀錄" }, { status: 500 });
   }
 }

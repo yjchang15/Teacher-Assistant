@@ -52,7 +52,7 @@
             <thead>
               <tr id="summaryHead">
                 <th>座號</th><th>朗讀次數</th><th>平均分</th><th>最高分</th>
-                <th>對話次數</th><th>對話總輪數</th><th>最後練習時間</th>
+                <th>對話次數</th><th>對話總輪數</th><th>最後練習時間</th><th class="action-col"></th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -73,6 +73,7 @@
           </div>
         </div>
         <p id="detailCount" class="hint"></p>
+        <p id="deleteResult" class="hint"></p>
         <div id="detailList" class="detail-list"></div>
       </section>
     </div>
@@ -110,6 +111,10 @@
           <code>speaking_practice_record_backups</code> 資料表。
         </p>
         <button id="clearBtn" class="danger-btn">清空所有練習紀錄</button>
+        <p class="hint">
+          只要刪掉某一位學生或某一筆紀錄，請到「成績」分頁：成績表每一列有
+          「刪除紀錄」，練習明細每一筆有「刪除」。兩者一樣會先備份。
+        </p>
         <p id="clearResult" class="hint"></p>
       </section>
     </div>

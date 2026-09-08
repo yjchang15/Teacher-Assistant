@@ -180,6 +180,9 @@ button { font-family: inherit; }
 .secondary-btn:disabled,
 .danger-btn:disabled { opacity: .45; cursor: not-allowed; }
 
+/* 表格列與明細卡片裡的小按鈕，不要跟主要動作搶注意力 */
+.tiny-btn { padding: 4px 12px; font-size: var(--fs-xs); font-weight: 600; }
+
 .link-btn {
   background: none;
   border: none;
@@ -640,6 +643,9 @@ select { cursor: pointer; }
 /* 還沒練習的整列淡化，老師一眼看得出誰還沒做 */
 .row-idle td { color: var(--text-muted); }
 
+/* 刪除欄靠右，寬度交給按鈕決定 */
+.data-table :is(th, td).action-col { text-align: right; width: 1%; }
+
 /* 練習明細 */
 
 .detail-list { display: flex; flex-direction: column; gap: var(--s2); }
@@ -665,6 +671,9 @@ select { cursor: pointer; }
 .detail-score.good { background: var(--green); }
 .detail-score.mid { background: var(--amber); }
 .detail-score.low { background: var(--red); }
+.detail-del { margin-left: auto; }
+/* 朗讀列已經有分數靠右，刪除鈕就接在分數後面，不要再各自搶一次靠右 */
+.detail-score + .detail-del { margin-left: var(--s2); }
 .detail-target { font-size: var(--fs-md); margin: var(--s3) 0 var(--s1); line-height: 1.7; }
 .detail-heard { font-size: var(--fs-sm); color: var(--text-secondary); margin: var(--s1) 0; }
 .detail-item details { margin-top: var(--s2); }

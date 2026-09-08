@@ -1,6 +1,7 @@
 import "server-only";
 import { execute, query, scalar } from "./db";
 import { getClasses } from "./queries";
+import { buildSpeakingDeleteQuery, type SpeakingDeleteFilter } from "./speaking-delete";
 
 const MAX_ARTICLES = 50;
 const MAX_ARTICLE_LENGTH = 3000;
@@ -190,23 +191,15 @@ export async function getSpeakingRecords(): Promise<SpeakingRecord[]> {
   }));
 }
 
-export async function clearSpeakingRecords(): Promise<{ cleared: number; backup: string | null }> {
-  const backupId = newId("b");
-  const now = new Date().toISOString();
-  const rows = await query<{ backup_id: string | null; cleared: number }>(
-    `WITH source AS MATERIALIZED (
-       SELECT id,created_at,record_data FROM speaking_practice_records ORDER BY created_at,id
-     ), saved AS (
-       INSERT INTO speaking_practice_record_backups(id,records,created_at)
-       SELECT $1,jsonb_agg(jsonb_build_object('id',id,'createdAt',created_at) || record_data),$2
-       FROM source HAVING COUNT(*)>0 RETURNING id
-     ), deleted AS (
-       DELETE FROM speaking_practice_records
-       WHERE EXISTS (SELECT 1 FROM saved) RETURNING id
-     )
-     SELECT (SELECT id FROM saved) AS backup_id,COUNT(*)::int AS cleared FROM deleted`,
-    [backupId, now],
-  );
+/**
+ * 備份後刪除練習紀錄。`filter` 決定刪掉哪些：整批清空、單一學生，或單一筆。
+ * 備份一定會先寫進 speaking_practice_record_backups，兩件事在同一個語句裡完成。
+ */
+export async function deleteSpeakingRecords(
+  filter: SpeakingDeleteFilter,
+): Promise<{ cleared: number; backup: string | null }> {
+  const { text, params } = buildSpeakingDeleteQuery(filter, newId("b"), new Date().toISOString());
+  const rows = await query<{ backup_id: string | null; cleared: number }>(text, params);
   return { cleared: Number(rows[0]?.cleared ?? 0), backup: rows[0]?.backup_id ?? null };
 }
 
