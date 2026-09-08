@@ -210,6 +210,31 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .progress-seat-chip:hover span, .progress-seat-chip:focus-visible span { opacity: 1; }
 .progress-seat-chip:disabled { opacity: .5; }
 
+/* 英文口說後台：分頁、成績表與練習明細。 */
+.speaking-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--bs-border-color); }
+.speaking-tabs button { padding: 9px 16px; border: 0; border-bottom: 2px solid transparent; color: var(--bs-secondary-color); font-size: .9rem; font-weight: 700; background: transparent; }
+.speaking-tabs button:hover { color: var(--bs-body-color); }
+.speaking-tabs button.is-active { border-bottom-color: var(--bs-primary); color: var(--bs-primary); }
+.speaking-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.speaking-stats > div { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.speaking-stats strong { font-size: 1.4rem; font-weight: 800; line-height: 1.15; }
+.speaking-stats span { color: var(--bs-secondary-color); font-size: .76rem; font-weight: 600; }
+.speaking-score { font-weight: 800; }
+.speaking-score.is-good { color: var(--bs-success); }
+.speaking-score.is-mid { color: var(--bs-warning); }
+.speaking-score.is-low { color: var(--bs-danger); }
+.speaking-table th { white-space: nowrap; }
+.speaking-record-list, .speaking-article-list { display: grid; gap: 10px; }
+.speaking-record, .speaking-article { padding: 12px 14px; border: 1px solid var(--bs-border-color); border-radius: 12px; }
+.speaking-record > header, .speaking-article > header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 8px; }
+.speaking-tag { padding: 3px 9px; border-radius: 99px; color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .1); font-size: .72rem; font-weight: 700; }
+.speaking-target { margin: 0 0 4px; font-size: .9rem; }
+.speaking-chat-log { display: grid; gap: 6px; margin: 10px 0; }
+.speaking-bubble { max-width: 80%; margin: 0; padding: 7px 11px; border-radius: 12px; font-size: .82rem; }
+.speaking-bubble.is-user { justify-self: end; color: white; background: var(--bs-primary); }
+.speaking-bubble.is-ai { justify-self: start; background: var(--bs-tertiary-bg); }
+.speaking-feedback { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bs-tertiary-bg); font-size: .82rem; }
+
 /* 班級維護：一個座號一個框，框內有刪除，最後一格是新增。 */
 .seat-chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .seat-chip { position: relative; display: grid; place-items: center; width: 58px; height: 48px; border: 1px solid var(--bs-border-color); border-radius: 9px; color: var(--bs-body-color); font-size: 1.15rem; font-weight: 700; background: var(--bs-body-bg); }
@@ -278,6 +303,12 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
   .student-report-card > header { padding: 10px 12px; }
   .student-report-card > header > div { flex-wrap: wrap; gap: 5px 10px; }
   .student-report-card table { min-width: 620px; }
+  .speaking-tabs button { padding: 8px 11px; font-size: .82rem; }
+  .speaking-stats { gap: 8px; }
+  .speaking-stats > div { padding: 9px 10px; border-radius: 10px; }
+  .speaking-stats strong { font-size: 1.05rem; }
+  .speaking-stats span { font-size: .7rem; }
+  .speaking-bubble { max-width: 100%; }
   .progress-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
   .progress-overview > div { padding: 9px 11px; border-radius: 10px; }
   .progress-overview strong { font-size: 1.25rem; }

@@ -2,27 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { PGlite } from "@electric-sql/pglite";
-import { articleBackupId, buildSpeakingDeleteQuery, parseSpeakingDeleteFilter } from "./speaking-delete";
-
-const filterOf = (search: string) => parseSpeakingDeleteFilter(new URLSearchParams(search));
-
-test("parses the delete scope from the query string", () => {
-  assert.deepEqual(filterOf("").filter, { scope: "all" });
-  assert.deepEqual(filterOf("id=r1").filter, { scope: "record", id: "r1" });
-  assert.deepEqual(filterOf("className=A班&student=7").filter, {
-    scope: "student", className: "A班", student: "7",
-  });
-  // 未分班的班名就是空字串，帶了參數就算指定過班級
-  assert.deepEqual(filterOf("className=&student=7").filter, {
-    scope: "student", className: "", student: "7",
-  });
-});
-
-test("rejects a student delete that would spill across classes", () => {
-  assert.equal(filterOf("student=7").error, "刪除單一學生的紀錄時必須指定班級");
-  assert.equal(filterOf("className=A班").error, "請一併指定要刪除的座號");
-  assert.equal(filterOf("student=7").filter, undefined);
-});
+import { articleBackupId, buildSpeakingDeleteQuery } from "./speaking-delete";
 
 async function seed() {
   const db = new PGlite();

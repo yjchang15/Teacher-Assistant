@@ -1,4 +1,4 @@
-// 刪除口說練習紀錄的條件解析與 SQL 組裝。
+// 刪除口說練習紀錄的 SQL 組裝。
 //
 // 獨立成純模組有兩個理由：一是 lib/speaking.ts 匯入了 server-only，node --test
 // 載不進來；二是刪除是不可逆的操作，條件怎麼組出來值得單獨測。
@@ -7,32 +7,6 @@ export type SpeakingDeleteFilter =
   | { scope: "all" }
   | { scope: "record"; id: string }
   | { scope: "student"; className: string; student: string };
-
-/**
- * 解析 DELETE /api/teacher/records 的查詢字串。
- *
- * - `?id=r123`                    → 只刪這一筆
- * - `?className=五年一班&student=7` → 刪這位學生在這個班的全部紀錄
- * - 什麼都不帶                     → 清空全部（維持原本的行為）
- *
- * 「未分班」的班名本身就是空字串，所以用「有沒有帶 className 這個參數」判斷，
- * 不能用值是不是空的判斷。
- */
-export function parseSpeakingDeleteFilter(
-  params: URLSearchParams,
-): { filter?: SpeakingDeleteFilter; error?: string } {
-  const id = (params.get("id") || "").trim();
-  const student = (params.get("student") || "").trim();
-  const hasClassName = params.has("className");
-
-  if (id) return { filter: { scope: "record", id } };
-  if (student) {
-    if (!hasClassName) return { error: "刪除單一學生的紀錄時必須指定班級" };
-    return { filter: { scope: "student", className: params.get("className") ?? "", student } };
-  }
-  if (hasClassName) return { error: "請一併指定要刪除的座號" };
-  return { filter: { scope: "all" } };
-}
 
 // 清空全部是「換一個學期」用的，所以朗讀文章要跟著練習紀錄一起清掉，老師才能
 // 從空的開始重新設定。文章的快照另外存成一列，備份 ID 由紀錄那份加上後綴。
