@@ -12,7 +12,6 @@ function revalidateAll() {
   revalidatePath("/admin");
   revalidatePath("/admin/classes");
   revalidatePath("/admin/class-summary");
-  revalidatePath("/admin/maintenance");
 }
 
 function todayInTaipei() {
@@ -100,9 +99,20 @@ export async function toggleAssignmentSeat(formData: FormData) {
   revalidateAll();
 }
 
-export async function adminDeleteMissingRecord(formData: FormData) {
-  await db.deleteAssignmentRecord(i(formData, "id"));
+// ── 繳交進度 ───────────────────────────────────────────────────────────────────
+// 補交的座號從缺交名單移除，以及「復原」把它放回去。兩個都由客戶端元件直接
+// 呼叫，所以不 redirect——頁面留在原地，畫面靠樂觀更新先動。
+
+export async function markSeatSubmitted(formData: FormData) {
+  const assignmentId = i(formData, "assignmentId");
+  if (!assignmentId) return;
+  await db.clearMissingSeat(assignmentId, i(formData, "seat"));
   revalidateAll();
-  const params = new URLSearchParams({ classId: s(formData, "classId"), date: s(formData, "date"), deleted: "record" });
-  redirect(`/admin/maintenance?${params}`);
+}
+
+export async function restoreMissingSeat(formData: FormData) {
+  const assignmentId = i(formData, "assignmentId");
+  if (!assignmentId) return;
+  await db.markMissingSeat(assignmentId, i(formData, "seat"));
+  revalidateAll();
 }
