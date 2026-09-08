@@ -201,9 +201,8 @@ body { margin: 0; min-height: 100vh; font-family: var(--font-sans); background: 
 .progress-meter-bar { flex: 1 1 auto; height: 8px; overflow: hidden; border-radius: 99px; background: var(--bs-tertiary-bg); }
 .progress-meter-bar span { display: block; height: 100%; border-radius: 99px; background: var(--bs-success); transition: width .18s ease; }
 .progress-meter small { flex: 0 0 auto; color: var(--bs-secondary-color); font-size: .74rem; font-weight: 700; }
-.progress-hint { margin: 13px 0 8px; color: var(--bs-secondary-color); font-size: .76rem; }
 .progress-done { margin: 12px 0 0; color: var(--bs-success); font-size: .82rem; font-weight: 700; }
-.progress-seat-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.progress-seat-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
 .progress-seat-chip { display: grid; place-items: center; grid-template-rows: 1fr auto; width: 66px; height: 62px; padding: 7px 4px 6px; border: 1px solid rgba(var(--bs-danger-rgb), .4); border-radius: 11px; color: var(--bs-danger); background: rgba(var(--bs-danger-rgb), .1); transition: color .12s ease, background .12s ease, border-color .12s ease; }
 .progress-seat-chip strong { font-size: 1.4rem; line-height: 1; }
 .progress-seat-chip span { font-size: .64rem; font-weight: 700; opacity: 0; transition: opacity .12s ease; }

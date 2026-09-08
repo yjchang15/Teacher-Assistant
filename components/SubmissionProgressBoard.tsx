@@ -95,25 +95,22 @@ export default function SubmissionProgressBoard({
               </div>
 
               {missing ? (
-                <>
-                  <p className="progress-hint"><i className="bi bi-hand-index-thumb me-1" />補交了就點一下座號，紀錄立刻移除。</p>
-                  <div className="progress-seat-chips" role="group" aria-label={`${item.title} 缺交座號`}>
-                    {item.missingSeats.map((seat) => (
-                      <button
-                        type="button"
-                        key={seat}
-                        className="progress-seat-chip"
-                        disabled={pending === `${item.id}-${seat}`}
-                        title={`${className} ${seat} 號已補交「${item.title}」`}
-                        aria-label={`${seat} 號已補交`}
-                        onClick={() => markSubmitted(item, seat)}
-                      >
-                        <strong>{seat}</strong>
-                        <span><i className="bi bi-check-lg me-1" />已補交</span>
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <div className="progress-seat-chips" role="group" aria-label={`${item.title} 缺交座號`}>
+                  {item.missingSeats.map((seat) => (
+                    <button
+                      type="button"
+                      key={seat}
+                      className="progress-seat-chip"
+                      disabled={pending === `${item.id}-${seat}`}
+                      title={`${className} ${seat} 號已補交「${item.title}」`}
+                      aria-label={`${seat} 號已補交`}
+                      onClick={() => markSubmitted(item, seat)}
+                    >
+                      <strong>{seat}</strong>
+                      <span><i className="bi bi-check-lg me-1" />已補交</span>
+                    </button>
+                  ))}
+                </div>
               ) : (
                 <p className="progress-done"><i className="bi bi-emoji-smile me-2" />這個項目沒有缺交紀錄。</p>
               )}
