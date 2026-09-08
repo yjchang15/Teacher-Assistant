@@ -7,8 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 const sections = [
   { label: "日常作業", items: [{ href: "/", icon: "bi-pencil-square", label: "作業登記", exact: true }] },
   { label: "追蹤報表", items: [
-    { href: "/admin", icon: "bi-person-lines-fill", label: "學生缺交明細", exact: true },
-    { href: "/admin/class-summary", icon: "bi-table", label: "班級缺交總覽" },
+    { href: "/admin/class-summary", icon: "bi-table", label: "繳交進度" },
   ] },
   { label: "英文口說", items: [
     { href: "/speaking/index.html", icon: "bi-mic-fill", label: "學生練習", external: true },
