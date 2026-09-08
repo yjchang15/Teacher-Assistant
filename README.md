@@ -62,7 +62,7 @@ The migration enables RLS and removes Data API access for `anon` and
 app/            routes (page.tsx, layout.tsx, actions.ts)
 components/     shared UI (Nav)
 lib/            db.ts (dual backend), queries.ts, schema.sql, pure helpers + tests
-public/speaking student and teacher speaking UI
+public/speaking student speaking UI (static; the teacher side lives at app/admin/speaking)
 supabase/       production migration and security hardening
 ```
 

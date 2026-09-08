@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { deleteSpeakingRecords, getSpeakingRecords, getSpeakingSummaries } from "@/lib/speaking";
-import { parseSpeakingDeleteFilter } from "@/lib/speaking-delete";
+import { getSpeakingRecords, getSpeakingSummaries } from "@/lib/speaking";
 
 export const dynamic = "force-dynamic";
 
+// 後台畫面自己在伺服器端讀資料，這個端點留給 test/speaking 的情境測試回頭驗證
+// 學生送出的紀錄真的寫進去了。刪除已經改由 /admin/speaking 的 server action 處理。
 export async function GET() {
   try {
     const records = await getSpeakingRecords();
@@ -11,17 +12,5 @@ export async function GET() {
   } catch (error) {
     console.error("讀取口說練習紀錄失敗", error);
     return NextResponse.json({ error: "伺服器無法讀取練習紀錄" }, { status: 500 });
-  }
-}
-
-// ?id=… 刪一筆、?className=…&student=… 刪一位學生、不帶參數則清空全部。
-export async function DELETE(request: Request) {
-  const { filter, error } = parseSpeakingDeleteFilter(new URL(request.url).searchParams);
-  if (!filter) return NextResponse.json({ error }, { status: 400 });
-  try {
-    return NextResponse.json({ ok: true, ...(await deleteSpeakingRecords(filter)) });
-  } catch (err) {
-    console.error("備份並刪除口說練習紀錄失敗", err);
-    return NextResponse.json({ error: "伺服器無法刪除練習紀錄" }, { status: 500 });
   }
 }
