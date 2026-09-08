@@ -22,12 +22,12 @@
   <div id="dashboard" hidden>
 
     <nav class="tabs" role="tablist">
-      <button class="tab-btn active" data-tab="scores" role="tab" aria-selected="true">成績</button>
+      <button class="tab-btn active" data-tab="scores" role="tab" aria-selected="true">成績檢視</button>
       <button class="tab-btn" data-tab="content" role="tab" aria-selected="false">朗讀文章</button>
       <button class="tab-btn" data-tab="data" role="tab" aria-selected="false">資料管理</button>
     </nav>
 
-    <!-- 成績 -->
+    <!-- 成績檢視 -->
     <div class="tab-panel" data-panel="scores" role="tabpanel">
       <section class="card">
         <div class="row-between">
@@ -99,20 +99,8 @@
     <!-- 資料管理 -->
     <div class="tab-panel" data-panel="data" role="tabpanel" hidden>
       <section class="card">
-        <h2>資料管理</h2>
-        <p class="hint">
-          班級、朗讀文章與練習紀錄都儲存在同一個 Supabase 專案。班級請使用主系統的
-          「班級維護」，口說成績可用上方按鈕匯出 CSV。
-        </p>
-        <p class="hint">
-          清空練習紀錄前，系統會先把完整快照存進
-          <code>speaking_practice_record_backups</code> 資料表。
-        </p>
+        <p class="hint">刪除前都會自動備份。只想刪一位學生或一筆紀錄，請到「成績檢視」分頁。</p>
         <button id="clearBtn" class="danger-btn">清空所有練習紀錄</button>
-        <p class="hint">
-          只要刪掉某一位學生或某一筆紀錄，請到「成績」分頁：成績表每一列有
-          「刪除紀錄」，練習明細每一筆有「刪除」。兩者一樣會先備份。
-        </p>
         <p id="clearResult" class="hint"></p>
       </section>
     </div>
