@@ -137,6 +137,8 @@ body {
 
 .hint { color: var(--text-secondary); font-size: var(--fs-sm); margin: var(--s2) 0; }
 .card h2 + .hint { margin-top: 0; }
+.hint-list { padding-left: 1.2em; }
+.hint-list li + li { margin-top: 4px; }
 
 .row-between {
   display: flex;

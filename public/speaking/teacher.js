@@ -721,18 +721,26 @@ async function downloadFile(path, filename) {
   URL.revokeObjectURL(url);
 }
 
+// 換學期用：練習紀錄與朗讀文章一起清掉，兩邊都先備份
 async function clearRecords() {
-  if (!confirm('確定要清空所有練習紀錄嗎？\n（系統會先在 Supabase 留下完整備份）')) return;
+  if (!confirm('確定要清空嗎？\n所有朗讀文章、練習次數與成績都會刪除（系統會先留下完整備份）。')) return;
   const res = await api('/api/teacher/records', { method: 'DELETE' });
   const data = await res.json();
   if (!res.ok) {
     $('clearResult').textContent = `清空失敗：${data.error || '未知錯誤'}`;
     return;
   }
-  $('clearResult').textContent = data.backup
-    ? `已清空 ${data.cleared} 筆紀錄，Supabase 備份 ID：${data.backup}`
-    : '目前沒有紀錄可以清空。';
-  await loadRecords();
+  const cleared = [
+    data.cleared ? `${data.cleared} 筆練習紀錄` : '',
+    data.clearedArticles ? `${data.clearedArticles} 篇朗讀文章` : '',
+  ].filter(Boolean);
+  // 只有紀錄或只有文章被清掉時，另一份備份不會產生
+  const backups = [data.backup, data.articleBackup].filter(Boolean);
+  $('clearResult').textContent = cleared.length
+    ? `已清空 ${cleared.join('、')}，備份 ID：${backups.join('、')}`
+    : '目前沒有資料可以清空。';
+  // 文章也被清掉了，朗讀文章分頁要一起重新載入
+  await Promise.all([loadRecords(), loadArticles()]);
 }
 
 // ====== 事件綁定 ======

@@ -1,7 +1,7 @@
 import "server-only";
 import { execute, query, scalar } from "./db";
 import { getClasses } from "./queries";
-import { buildSpeakingDeleteQuery, type SpeakingDeleteFilter } from "./speaking-delete";
+import { articleBackupId, buildSpeakingDeleteQuery, type SpeakingDeleteFilter } from "./speaking-delete";
 
 const MAX_ARTICLES = 50;
 const MAX_ARTICLE_LENGTH = 3000;
@@ -194,13 +194,22 @@ export async function getSpeakingRecords(): Promise<SpeakingRecord[]> {
 /**
  * 備份後刪除練習紀錄。`filter` 決定刪掉哪些：整批清空、單一學生，或單一筆。
  * 備份一定會先寫進 speaking_practice_record_backups，兩件事在同一個語句裡完成。
+ * 整批清空是換學期用的，連朗讀文章也一起備份後清掉。
  */
 export async function deleteSpeakingRecords(
   filter: SpeakingDeleteFilter,
-): Promise<{ cleared: number; backup: string | null }> {
-  const { text, params } = buildSpeakingDeleteQuery(filter, newId("b"), new Date().toISOString());
-  const rows = await query<{ backup_id: string | null; cleared: number }>(text, params);
-  return { cleared: Number(rows[0]?.cleared ?? 0), backup: rows[0]?.backup_id ?? null };
+): Promise<{ cleared: number; clearedArticles: number; backup: string | null; articleBackup: string | null }> {
+  const backupId = newId("b");
+  const { text, params } = buildSpeakingDeleteQuery(filter, backupId, new Date().toISOString());
+  const rows = await query<{ backup_id: string | null; cleared: number; cleared_articles: number }>(text, params);
+  const clearedArticles = Number(rows[0]?.cleared_articles ?? 0);
+  return {
+    cleared: Number(rows[0]?.cleared ?? 0),
+    clearedArticles,
+    backup: rows[0]?.backup_id ?? null,
+    // 只有紀錄或只有文章被清掉時，另一份備份根本沒寫，所以分開回報
+    articleBackup: clearedArticles ? articleBackupId(backupId) : null,
+  };
 }
 
 export async function getSpeakingSummaries(records: SpeakingRecord[]): Promise<SpeakingSummary[]> {
