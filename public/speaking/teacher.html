@@ -99,8 +99,11 @@
     <!-- 資料管理 -->
     <div class="tab-panel" data-panel="data" role="tabpanel" hidden>
       <section class="card">
-        <p class="hint">刪除前都會自動備份。只想刪一位學生或一筆紀錄，請到「成績檢視」分頁。</p>
-        <button id="clearBtn" class="danger-btn">清空所有練習紀錄</button>
+        <ul class="hint hint-list">
+          <li>此功能會同時刪除所有朗讀文章、練習次數與成績。</li>
+          <li>若只想刪一位學生或一筆紀錄，請到「成績檢視」頁面刪除。</li>
+        </ul>
+        <button id="clearBtn" class="danger-btn">清空所有朗讀文章與成績</button>
         <p id="clearResult" class="hint"></p>
       </section>
     </div>

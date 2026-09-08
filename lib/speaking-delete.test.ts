@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { PGlite } from "@electric-sql/pglite";
-import { buildSpeakingDeleteQuery, parseSpeakingDeleteFilter } from "./speaking-delete";
+import { articleBackupId, buildSpeakingDeleteQuery, parseSpeakingDeleteFilter } from "./speaking-delete";
 
 const filterOf = (search: string) => parseSpeakingDeleteFilter(new URLSearchParams(search));
 
@@ -43,14 +43,21 @@ async function seed() {
       [id, className, seat, JSON.stringify(data), `2026-01-0${seat} 00:00`],
     );
   }
+  for (const content of ["Article one.", "Article two."]) {
+    await db.query(
+      "INSERT INTO speaking_articles(content,created_at,updated_at) VALUES ($1,$2,$2)",
+      [content, "2026-01-01 00:00"],
+    );
+  }
   return db;
 }
 
-async function runDelete(db: PGlite, filter: Parameters<typeof buildSpeakingDeleteQuery>[0]) {
-  const { text, params } = buildSpeakingDeleteQuery(filter, "b1", "2026-02-01 00:00");
-  const { rows } = await db.query<{ backup_id: string | null; cleared: number }>(text, params);
+async function runDelete(db: PGlite, filter: Parameters<typeof buildSpeakingDeleteQuery>[0], backupId = "b1") {
+  const { text, params } = buildSpeakingDeleteQuery(filter, backupId, "2026-02-01 00:00");
+  const { rows } = await db.query<{ backup_id: string | null; cleared: number; cleared_articles: number }>(text, params);
   const left = await db.query<{ id: string }>("SELECT id FROM speaking_practice_records ORDER BY id");
-  return { ...rows[0], left: left.rows.map((row) => row.id) };
+  const articles = await db.query<{ id: number }>("SELECT id FROM speaking_articles");
+  return { ...rows[0], left: left.rows.map((row) => row.id), articlesLeft: articles.rows.length };
 }
 
 test("deleting one record leaves every other record alone", async () => {
@@ -92,6 +99,40 @@ test("clearing everything still backs up the whole table first", async () => {
       "SELECT records FROM speaking_practice_record_backups WHERE id='b1'",
     );
     assert.equal(backup.rows[0].records.length, 4);
+  } finally {
+    await db.close();
+  }
+});
+
+// 換學期：清空全部連朗讀文章一起，老師才不用一篇一篇刪
+test("clearing everything also backs up and removes the articles", async () => {
+  const db = await seed();
+  try {
+    const result = await runDelete(db, { scope: "all" });
+    assert.equal(Number(result.cleared_articles), 2);
+    assert.equal(result.articlesLeft, 0);
+
+    const backup = await db.query<{ records: { content: string }[] }>(
+      "SELECT records FROM speaking_practice_record_backups WHERE id=$1",
+      [articleBackupId("b1")],
+    );
+    assert.deepEqual(backup.rows[0].records.map((row) => row.content), ["Article one.", "Article two."]);
+  } finally {
+    await db.close();
+  }
+});
+
+// 刪一筆或刪一位學生時文章不能跟著消失
+test("a narrower delete leaves the articles alone", async () => {
+  const db = await seed();
+  try {
+    const record = await runDelete(db, { scope: "record", id: "r2" });
+    assert.equal(Number(record.cleared_articles), 0);
+    assert.equal(record.articlesLeft, 2);
+
+    const student = await runDelete(db, { scope: "student", className: "A班", student: "7" }, "b2");
+    assert.equal(Number(student.cleared_articles), 0);
+    assert.equal(student.articlesLeft, 2);
   } finally {
     await db.close();
   }
