@@ -25,6 +25,7 @@ export default function SubmissionProgressBoard({
   const [board, setBoard] = useState(items);
   const [undo, setUndo] = useState<{ assignmentId: number; seat: number; title: string } | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const missingItems = board.filter((item) => item.missingSeats.length > 0);
 
   useEffect(() => {
     if (!undo) return;
@@ -72,21 +73,27 @@ export default function SubmissionProgressBoard({
 
   return (
     <>
+      {missingItems.length === 0 && (
+        <div className="empty-state" role="status">
+          <i className="bi bi-check-circle" />
+          <strong>{pending ? "更新繳交狀態中…" : "目前沒有缺交作業"}</strong>
+        </div>
+      )}
       <div className="progress-board">
-        {board.map((item) => {
+        {missingItems.map((item) => {
           const missing = item.missingSeats.length;
           const submitted = Math.max(0, headcount - missing);
           const percent = headcount ? Math.round((submitted / headcount) * 100) : 100;
           return (
-            <article className={`progress-card ${missing ? "" : "is-complete"}`} key={item.id}>
+            <article className="progress-card" key={item.id}>
               <header>
                 <div>
                   <h2>{item.title}</h2>
                   <p><time dateTime={item.date}>{item.date.replaceAll("-", "/")}</time></p>
                   {item.description && <p>{item.description}</p>}
                 </div>
-                <span className={`progress-count ${missing ? "" : "is-complete"}`}>
-                  {missing ? <>缺交 {missing} 人</> : <><i className="bi bi-check-circle-fill me-1" />全班已交</>}
+                <span className="progress-count">
+                  缺交 {missing} 人
                 </span>
               </header>
 
@@ -95,7 +102,6 @@ export default function SubmissionProgressBoard({
                 <small>已交 {submitted} / {headcount}（{percent}%）</small>
               </div>
 
-              {missing ? (
                 <div className="progress-seat-chips" role="group" aria-label={`${item.date} ${item.title} 缺交座號`}>
                   {item.missingSeats.map((seat) => (
                     <button
@@ -112,9 +118,6 @@ export default function SubmissionProgressBoard({
                     </button>
                   ))}
                 </div>
-              ) : (
-                <p className="progress-done"><i className="bi bi-emoji-smile me-2" />這個項目沒有缺交紀錄。</p>
-              )}
             </article>
           );
         })}
