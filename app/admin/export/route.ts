@@ -1,49 +1,28 @@
-import { type NextRequest } from "next/server";
 import * as XLSX from "xlsx";
-import { getAssignmentMatrix, getClasses } from "@/lib/queries";
+import { getAllMissingDetails } from "@/lib/queries";
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-function todayInTaipei() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Taipei",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-export async function GET(req: NextRequest) {
-  const today = todayInTaipei();
-  const startParam = req.nextUrl.searchParams.get("start") ?? "";
-  const endParam = req.nextUrl.searchParams.get("end") ?? "";
-  const requestedStart = ISO_DATE.test(startParam) ? startParam : today;
-  const requestedEnd = ISO_DATE.test(endParam) ? endParam : today;
-  const rawStart = requestedStart <= today ? requestedStart : today;
-  const rawEnd = requestedEnd <= today ? requestedEnd : today;
-  const start = rawStart <= rawEnd ? rawStart : rawEnd;
-  const end = rawStart <= rawEnd ? rawEnd : rawStart;
-  const classes = await getClasses();
-  const selectedClass = classes.find((item) => item.id === Number(req.nextUrl.searchParams.get("classId"))) ?? classes[0];
-  const matrix = await getAssignmentMatrix(selectedClass?.id ?? 0, start, end, selectedClass?.seats ?? []);
-  const rows = matrix.rows.filter((row) => row.total > 0);
-
-  const header = ["座號", ...matrix.titles, "未交合計"];
-  const body = rows.map((row) => [
-    row.seat,
-    ...matrix.titles.map((title) => row.counts[title] ?? 0),
-    row.total,
-  ]);
-  const footer = ["合計", ...matrix.titles.map((title) => matrix.colTotals[title] ?? 0), matrix.grandTotal];
-  const worksheet = XLSX.utils.aoa_to_sheet([header, ...body, footer]);
+export async function GET() {
+  const rows = await getAllMissingDetails();
+  const header = ["班級", "座號", "日期", "作業項目", "作業內容"];
+  const body = rows.map((row) => [row.class_name, row.seat, row.date, row.title, row.description]);
+  const worksheet = XLSX.utils.aoa_to_sheet([header, ...body]);
+  worksheet["!cols"] = [
+    { wch: 12 },
+    { wch: 8 },
+    { wch: 12 },
+    { wch: 28 },
+    { wch: 50 },
+  ];
+  worksheet["!autofilter"] = { ref: `A1:E${Math.max(1, body.length + 1)}` };
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "未交作業統計");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "全部未交作業");
   const buffer: Buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="homework-class-${selectedClass?.id ?? 0}-${start}_${end}.xlsx"`,
+      "Content-Disposition": 'attachment; filename="all-missing-homework.xlsx"',
+      "Cache-Control": "no-store",
     },
   });
 }

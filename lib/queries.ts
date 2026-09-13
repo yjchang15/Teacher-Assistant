@@ -109,6 +109,15 @@ export async function getMissingDetails(classId: number, start: string, end: str
     WHERE a.class_id=$1 AND a.date>=$2 AND a.date<=$3 ORDER BY ar.seat,a.date,a.id`, [classId, start, end])).map((r) => num(r, ["seat"]));
 }
 
+export interface AllMissingDetail extends MissingDetail { class_name: string; }
+export async function getAllMissingDetails(): Promise<AllMissingDetail[]> {
+  return (await query<AllMissingDetail>(`SELECT c.name class_name,ar.seat,a.date,a.title,a.description
+    FROM assignment_records ar
+    JOIN assignments a ON a.id=ar.assignment_id
+    JOIN classes c ON c.id=a.class_id
+    ORDER BY c.name,c.id,ar.seat,a.date,a.id`)).map((r) => num(r, ["seat"]));
+}
+
 // 繳交進度：當天每個作業項目都要出現，連一個都沒缺交的也要（LEFT JOIN），
 // 這樣「全班已交」才看得出來，而不是整列消失。
 export interface AssignmentProgress { assignment_id: number; title: string; description: string; missing_seats: number[]; }
