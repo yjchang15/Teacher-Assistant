@@ -118,21 +118,22 @@ export async function getAllMissingDetails(): Promise<AllMissingDetail[]> {
     ORDER BY c.name,c.id,ar.seat,a.date,a.id`)).map((r) => num(r, ["seat"]));
 }
 
-// 繳交進度：當天每個作業項目都要出現，連一個都沒缺交的也要（LEFT JOIN），
+// 繳交進度：班級所有日期的作業項目都要出現，連一個都沒缺交的也要（LEFT JOIN），
 // 這樣「全班已交」才看得出來，而不是整列消失。
-export interface AssignmentProgress { assignment_id: number; title: string; description: string; missing_seats: number[]; }
-export async function getClassSubmissionProgress(classId: number, date: string): Promise<AssignmentProgress[]> {
-  if (!classId || !date) return [];
-  const rows = await query<{ assignment_id: number; title: string; description: string; seats: string | null }>(
-    `SELECT a.id assignment_id,a.title,a.description,
+export interface AssignmentProgress { assignment_id: number; date: string; title: string; description: string; missing_seats: number[]; }
+export async function getClassSubmissionProgress(classId: number): Promise<AssignmentProgress[]> {
+  if (!classId) return [];
+  const rows = await query<{ assignment_id: number; date: string; title: string; description: string; seats: string | null }>(
+    `SELECT a.id assignment_id,a.date,a.title,a.description,
       STRING_AGG(ar.seat::text, ',' ORDER BY ar.seat) seats
     FROM assignments a LEFT JOIN assignment_records ar ON ar.assignment_id=a.id
-    WHERE a.class_id=$1 AND a.date=$2
-    GROUP BY a.id,a.title,a.description ORDER BY a.id`,
-    [classId, date],
+    WHERE a.class_id=$1
+    GROUP BY a.id,a.date,a.title,a.description ORDER BY a.date DESC,a.id`,
+    [classId],
   );
   return rows.map((row) => ({
     assignment_id: Number(row.assignment_id),
+    date: row.date,
     title: row.title,
     description: row.description,
     missing_seats: row.seats ? row.seats.split(",").map(Number) : [],

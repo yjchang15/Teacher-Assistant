@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export interface ProgressItem { id: number; title: string; description: string; missingSeats: number[]; }
+export interface ProgressItem { id: number; date: string; title: string; description: string; missingSeats: number[]; }
 
 const UNDO_MS = 8000;
 
@@ -50,7 +50,7 @@ export default function SubmissionProgressBoard({
     setSeats(item.id, drop(seat));
     try {
       await send(submitAction, item.id, seat);
-      setUndo({ assignmentId: item.id, seat, title: item.title });
+      setUndo({ assignmentId: item.id, seat, title: `${item.date.replaceAll("-", "/")} ${item.title}` });
     } catch {
       setSeats(item.id, add(seat));
     } finally {
@@ -82,6 +82,7 @@ export default function SubmissionProgressBoard({
               <header>
                 <div>
                   <h2>{item.title}</h2>
+                  <p><time dateTime={item.date}>{item.date.replaceAll("-", "/")}</time></p>
                   {item.description && <p>{item.description}</p>}
                 </div>
                 <span className={`progress-count ${missing ? "" : "is-complete"}`}>
@@ -95,15 +96,15 @@ export default function SubmissionProgressBoard({
               </div>
 
               {missing ? (
-                <div className="progress-seat-chips" role="group" aria-label={`${item.title} 缺交座號`}>
+                <div className="progress-seat-chips" role="group" aria-label={`${item.date} ${item.title} 缺交座號`}>
                   {item.missingSeats.map((seat) => (
                     <button
                       type="button"
                       key={seat}
                       className="progress-seat-chip"
                       disabled={pending === `${item.id}-${seat}`}
-                      title={`${className} ${seat} 號已補交「${item.title}」`}
-                      aria-label={`${seat} 號已補交`}
+                      title={`${className} ${seat} 號已補交「${item.date} ${item.title}」`}
+                      aria-label={`${item.date} ${item.title} ${seat} 號已補交`}
                       onClick={() => markSubmitted(item, seat)}
                     >
                       <strong>{seat}</strong>
