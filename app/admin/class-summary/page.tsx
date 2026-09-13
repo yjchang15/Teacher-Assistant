@@ -28,8 +28,11 @@ export default async function SubmissionProgressPage({ searchParams }: { searchP
           <h1>繳交進度</h1>
           <p>看當天每個作業項目交齊了沒。學生補交後點一下座號，缺交紀錄就會移除。</p>
         </div>
-        <div className="registration-context-bar">
-          <RegistrationContextSelector date={date} maxDate={today} classId={classId} classes={classes.map(({ id, name }) => ({ id, name }))} />
+        <div className="progress-header-actions">
+          <div className="registration-context-bar">
+            <RegistrationContextSelector date={date} maxDate={today} classId={classId} classes={classes.map(({ id, name }) => ({ id, name }))} />
+          </div>
+          <a className="btn btn-success flex-shrink-0" href="/admin/export"><i className="bi bi-file-earmark-excel me-2" />匯出全部</a>
         </div>
       </header>
 
