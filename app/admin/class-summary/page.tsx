@@ -16,7 +16,7 @@ export default async function SubmissionProgressPage({ searchParams }: { searchP
 
   return (
     <main className="desktop-dashboard">
-      <header className="page-header">
+      <header className="page-header submission-progress-header">
         <div>
           <h1>繳交進度</h1>
           <p>選擇班級，查看所有日期的作業繳交進度。學生補交後點一下座號，缺交紀錄就會移除。</p>
